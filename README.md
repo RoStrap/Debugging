@@ -9,9 +9,10 @@ This module has standard helper functions to assist in debugging.
 
 local Debug = require("Debug")
 
-string Debug.TableToString (table)
+string Debug.TableToString (table [, tableName])
 	-- Pretty self-explanatory
 	-- @param table The table to convert into a string
+	-- @param tableName Optional include tableName in formatting
 	-- @returns a readable string of the table
 
 string Debug.DirectoryToString (Object)
