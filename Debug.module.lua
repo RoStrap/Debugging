@@ -1,15 +1,31 @@
+local DirectoryToString do
+	-- @author Validark
+	-- Gets the string of the directory of an object, properly formatted
+	-- Corrects the built-in GetFullName function so that it returns properly formatted text.
+
+	local gsub = string.gsub
+	local GetFullName = workspace.GetFullName
+
+	function DirectoryToString(Object)
+		return (gsub(gsub(gsub(gsub(GetFullName(Object), "^Workspace", "workspace"), "%.(%w*%s%w*)", "%[\"%1\"%]"), "%.(%d+[%w%s]+)", "%[\"%1\"%]"), "%.(%d+)", "%[%1%]"))
+	end
+end
+
 local TableToString do
+	-- Converts a table into a readable string
+	
 	local function Parse(Object)
 		local Type = typeof(Object)
 
 		return
 			Type == "table" and TableToString(Object) or
 			Type == "string" and "\"" .. Object .. "\"" or
+			Type == "Instance" and "<" .. DirectoryToString(Object) .. ">" or
 			(Type == "function" or type(Object) == "userdata") and Type or
 			Object
 	end
 
-	local function TableToString(t)
+	function TableToString(t)
 		if type(t) == "table" then
 			local IsArrayKey = {}
 			local Output = {}
@@ -52,19 +68,6 @@ local TableToString do
 
 			return Output
 		end
-	end
-end
-
-local DirectoryToString do
-	-- @author Validark
-	-- Gets the string of the directory of an object, properly formatted
-	-- Corrects the built-in GetFullName function so that it returns properly formatted text.
-
-	local gsub = string.gsub
-	local GetFullName = workspace.GetFullName
-
-	function DirectoryToString(Object)
-		return (gsub(gsub(gsub(gsub(GetFullName(Object), "^Workspace", "workspace"), "%.(%w*%s%w*)", "%[\"%1\"%]"), "%.(%d+[%w%s]+)", "%[\"%1\"%]"), "%.(%d+)", "%[%1%]"))
 	end
 end
 
