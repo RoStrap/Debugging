@@ -1,18 +1,56 @@
 local DirectoryToString do
+	--- Gets the string of the directory of an object, properly formatted
+	-- string DirectoryToString(Object)
+	-- @returns Objects location in proper Lua format
 	-- @author Validark
-	-- Gets the string of the directory of an object, properly formatted
 	-- Corrects the built-in GetFullName function so that it returns properly formatted text.
 
-	local gsub = string.gsub
-	local GetFullName = workspace.GetFullName
-
 	function DirectoryToString(Object)
-		return (gsub(gsub(gsub(gsub(GetFullName(Object), "^Workspace", "workspace"), "%.(%w*%s%w*)", "%[\"%1\"%]"), "%.(%d+[%w%s]+)", "%[\"%1\"%]"), "%.(%d+)", "%[%1%]"))
+		return (Object
+			:GetFullName()
+			:gsub("^Workspace", "workspace")
+			:gsub("%.(%w*%s%w*)", "%[\"%1\"%]")
+			:gsub("%.(%d+[%w%s]+)", "%[\"%1\"%]")
+			:gsub("%.(%d+)", "%[%1%]")
+	 	)
+	end
+end
+
+local AlphabeticalOrder do
+	--- Iteration function that allows for loops to be sequenced in alphabetical order
+	-- @author Validark
+
+	function AlphabeticalOrder(Table)
+		local Order = {}
+		for i, _ in next, Table do
+			Order[#Order + 1] = i
+		end
+		table.sort(Order)
+		-- TODO: This sort is the source of errors regarding comparing incompatible types
+		-- Should move to a custom function
+
+		local i = 0
+
+		local function Iterator(Table, Key)
+			i = i + 1
+			local v = Table[Order[i]]
+
+			if v or type(v) == "boolean" then
+				return Order[i], v
+			end
+		end
+
+		return Iterator, Table, 0
 	end
 end
 
 local TableToString do
-	-- Converts a table into a readable string
+	--- Converts a table into a readable string
+	-- string TableToString(Table, TableName, AlphabeticallyArranged)
+	-- @param table Table The Table to convert into a readable string
+	-- @param string TableName Optional Name parameter that puts a "[TableName] = " at the beginning
+	-- @param AlphabeticallyArranged Whether the table should be alphabetically sorted: still in-dev, little support
+	-- @returns a readable string version of the table
 
 	local function Parse(Object)
 		local Type = typeof(Object)
@@ -22,10 +60,10 @@ local TableToString do
 			Type == "string" and "\"" .. Object .. "\"" or
 			Type == "Instance" and "<" .. DirectoryToString(Object) .. ">" or
 			(Type == "function" or type(Object) == "userdata") and Type or
-			Object
+			tostring(Object)
 	end
 
-	function TableToString(Table, TableName)
+	function TableToString(Table, TableName, AlphabeticallyArranged)
 		if type(Table) == "table" then
 			local IsArrayKey = {}
 			local Output = {}
@@ -38,7 +76,7 @@ local TableToString do
 				OutputCount = OutputCount + 2
 			end
 
-			for Key, Value in next, Table do
+			for Key, Value in (AlphabeticallyArranged and AlphabeticalOrder or pairs)(Table) do
 				if not IsArrayKey[Key] then
 					if type(Key) == "string" and not Key:find("^%d") then
 						Output[OutputCount + 1] = Key
@@ -78,4 +116,5 @@ end
 return {
 	TableToString = TableToString;
 	DirectoryToString = DirectoryToString;
+	AlphabeticalOrder = AlphabeticalOrder;
 }
