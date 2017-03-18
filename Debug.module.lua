@@ -52,26 +52,40 @@ local TableToString do
 	-- @param AlphabeticallyArranged Whether the table should be alphabetically sorted: still in-dev, little support
 	-- @returns a readable string version of the table
 
-	local function Parse(Object)
+	local function Parse(Object, AlphabeticallyArranged, EncounteredTables)
 		local Type = typeof(Object)
 
+		if Type == "table" then
+			for TableName, Table in next, EncounteredTables do
+				if Table == Object then
+					if TableName == 1 then
+						return "[self]"
+					else
+						return "[table " .. TableName .. "]"
+					end
+				end
+			end
+			return TableToString(Object, nil, AlphabeticallyArranged, EncounteredTables)
+		end
+
 		return
-			Type == "table" and TableToString(Object) or
 			Type == "string" and "\"" .. Object .. "\"" or
 			Type == "Instance" and "<" .. DirectoryToString(Object) .. ">" or
-			(Type == "function" or type(Object) == "userdata") and Type or
+			(Type == "function" or Type == "userdata") and Type or
 			tostring(Object)
 	end
 
-	function TableToString(Table, TableName, AlphabeticallyArranged)
+	function TableToString(Table, TableName, AlphabeticallyArranged, EncounteredTables)
 		if type(Table) == "table" then
+			local EncounteredTables = EncounteredTables or {}
+			EncounteredTables[TableName or #EncounteredTables + 1] = Table
 			local IsArrayKey = {}
 			local Output = {}
 			local OutputCount = 0
 
 			for Integer, Value in ipairs(Table) do
 				IsArrayKey[Integer] = true
-				Output[OutputCount + 1] = Parse(Value)
+				Output[OutputCount + 1] = Parse(Value, AlphabeticallyArranged, EncounteredTables)
 				Output[OutputCount + 2] = ", "
 				OutputCount = OutputCount + 2
 			end
@@ -83,12 +97,12 @@ local TableToString do
 						OutputCount = OutputCount - 2
 					else
 						Output[OutputCount + 1] = "["
-						Output[OutputCount + 2] = Parse(Key)
+						Output[OutputCount + 2] = Parse(Key, AlphabeticallyArranged, EncounteredTables)
 						Output[OutputCount + 3] = "]"
 					end
 
 					Output[OutputCount + 4] = " = "
-					Output[OutputCount + 5] = Parse(Value)
+					Output[OutputCount + 5] = Parse(Value, AlphabeticallyArranged, EncounteredTables)
 					Output[OutputCount + 6] = ", "
 					OutputCount = OutputCount + 6
 				end
@@ -109,6 +123,8 @@ local TableToString do
 			end
 
 			return Output
+		else
+			error("[Debug] TableToString needs a table to convert to a string! Got type" .. typeof(Table))
 		end
 	end
 end
