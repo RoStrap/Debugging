@@ -27,7 +27,7 @@ local AlphabeticalOrder do
 		end
 		table.sort(Order)
 		-- TODO: This sort is the source of errors regarding comparing incompatible types
-		-- Should move to a custom function
+		-- Should move to a custom comparison function
 
 		local i = 0
 
@@ -115,7 +115,11 @@ local TableToString do
 			Output = "{" .. table.concat(Output) .. "}"
 
 			if Metatable then
-				Output = Output .. " <- " .. TableToString(Metatable)
+				if type(Metatable) == "table" then
+					Output = Output .. " <- " .. TableToString(Metatable)
+				else
+					warn((TableName or "Table") .. "'s metatable cannot be accessed. Got:\n" .. tostring(Metatable))
+				end				
 			end
 
 			if TableName then
