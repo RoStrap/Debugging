@@ -136,7 +136,7 @@ end
 
 local EscapeString do
 	--- Turns strings into Lua-readble format
-	-- string TableToString(Table, TableName, AlphabeticallyArranged)
+	-- string Debug.EscapeString(String)
 	-- @returns Objects location in proper Lua format
 	-- @author Validark
 	-- Useful for when you are doing string-intensive coding
