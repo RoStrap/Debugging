@@ -25,6 +25,7 @@ local AlphabeticalOrder do
 		for i, _ in next, Table do
 			Order[#Order + 1] = i
 		end
+		
 		table.sort(Order)
 		-- TODO: This sort is the source of errors regarding comparing incompatible types
 		-- Should move to a custom comparison function
@@ -133,7 +134,25 @@ local TableToString do
 	end
 end
 
+local EscapeString do
+	--- Turns strings into Lua-readble format
+	-- string TableToString(Table, TableName, AlphabeticallyArranged)
+	-- @returns Objects location in proper Lua format
+	-- @author Validark
+	-- Useful for when you are doing string-intensive coding
+	-- Those minus signs always get me when I'm not using this function!
+	
+	function EscapeString(String)		
+		return (
+			String
+			:gsub("([().%+-*?[^$])", "%%%1")
+			:gsub("([\"'])", "\\%1")
+		)
+	end
+end
+
 return {
+	EscapeString = EscapeString;
 	TableToString = TableToString;
 	DirectoryToString = DirectoryToString;
 	AlphabeticalOrder = AlphabeticalOrder;
