@@ -26,4 +26,11 @@ string Debug.EscapeString (String)
 	// @returns Objects location in proper Lua format
 	// Useful for when you are doing string-intensive coding
 	// Those minus signs are so tricky!
+	
+function Debug.AlphabeticalOrder (Table)
+	/// Iteration function generator that allows for loops to be sequenced in alphabetical order
+	// @param table Table That which will be iterated over in alphabetical order
+	//	@constraints Currently only accepts tables with string keys
+	// @returns function An iterative function that can traverse a table using a for loop
+	// Not case-sensitive
 ```
