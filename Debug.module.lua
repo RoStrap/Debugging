@@ -140,7 +140,25 @@ local TableToString do
 	end
 end
 
+local EscapeString do
+	--- Turns strings into Lua-readble format
+	-- string Debug.EscapeString(String)
+	-- @returns Objects location in proper Lua format
+	-- @author Validark
+	-- Useful for when you are doing string-intensive coding
+	-- Those minus signs always get me when I'm not using this function!
+	
+	function EscapeString(String)		
+		return (
+			String
+			:gsub("([().%+-*?[^$])", "%%%1")
+			:gsub("([\"'])", "\\%1")
+		)
+	end
+end
+
 return {
+	EscapeString = EscapeString;
 	TableToString = TableToString;
 	DirectoryToString = DirectoryToString;
 	AlphabeticalOrder = AlphabeticalOrder;
