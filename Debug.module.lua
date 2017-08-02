@@ -18,6 +18,10 @@ end
 
 local AlphabeticalOrder do
 	--- Iteration function that allows for loops to be sequenced in alphabetical order
+	-- function AlphabeticalOrder(Table)
+	-- @param table Table That which will be iterated over in alphabetical order
+	--	@constraints Currently only accepts tables with string keys
+	-- Not case-sensitive
 	-- @author Validark
 
 	function AlphabeticalOrder(Table)
@@ -25,7 +29,10 @@ local AlphabeticalOrder do
 		for i, _ in next, Table do
 			Order[#Order + 1] = i
 		end
-		table.sort(Order)
+		
+		table.sort(Order, function(a, b)
+			return a:upper() < b:upper()
+		end)
 		-- TODO: This sort is the source of errors regarding comparing incompatible types
 		-- Should move to a custom comparison function
 
