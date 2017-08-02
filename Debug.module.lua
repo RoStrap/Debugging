@@ -25,7 +25,6 @@ local AlphabeticalOrder do
 		for i, _ in next, Table do
 			Order[#Order + 1] = i
 		end
-		
 		table.sort(Order)
 		-- TODO: This sort is the source of errors regarding comparing incompatible types
 		-- Should move to a custom comparison function
