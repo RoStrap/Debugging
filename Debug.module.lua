@@ -6,48 +6,44 @@ local DirectoryToString do
 	-- Corrects the built-in GetFullName function so that it returns properly formatted text.
 
 	function DirectoryToString(Object)
-		return (Object
-			:GetFullName()
-			:gsub("^Workspace", "workspace")
-			:gsub("%.(%w*%s%w*)", "%[\"%1\"%]")
-			:gsub("%.(%d+[%w%s]+)", "%[\"%1\"%]")
-			:gsub("%.(%d+)", "%[%1%]")
+		return (
+			Object
+				:GetFullName()
+				:gsub("^Workspace", "workspace")
+				:gsub("%.(%w*%s%w*)", "%[\"%1\"%]")
+				:gsub("%.(%d+[%w%s]+)", "%[\"%1\"%]")
+				:gsub("%.(%d+)", "%[%1%]")
 	 	)
 	end
 end
 
 local AlphabeticalOrder do
-	--- Iteration function that allows for loops to be sequenced in alphabetical order
-	-- function AlphabeticalOrder(Table)
-	-- @param table Table That which will be iterated over in alphabetical order
-	--	@constraints Currently only accepts tables with string keys
+	--- Iteration function that iterates over a dictionary in alphabetical order
+	-- function AlphabeticalOrder(Dictionary)
+	-- @param table Dictionary That which will be iterated over in alphabetical order
+	-- A dictionary looks like this: {Apple = true, Noodles = 5, Soup = false}
 	-- Not case-sensitive
 	-- @author Validark
 
-	function AlphabeticalOrder(Table)
+	local function Alphabetically(a, b)
+		return a:lower() < b:lower()
+	end
+	
+	function AlphabeticalOrder(Dictionary)
 		local Order = {}
-		for i, _ in next, Table do
-			Order[#Order + 1] = i
+		
+		for Key in next, Dictionary do
+			Order[#Order + 1] = Key
 		end
 		
-		table.sort(Order, function(a, b)
-			return a:upper() < b:upper()
-		end)
-		-- TODO: This sort is the source of errors regarding comparing incompatible types
-		-- Should move to a custom comparison function
-
-		local i = 0
-
-		local function Iterator(Table, Key)
-			i = i + 1
-			local v = Table[Order[i]]
-
-			if v or type(v) == "boolean" then
-				return Order[i], v
+		table.sort(Order, Alphabetically)
+		
+		return coroutine.wrap(function()
+			for a = 1, #Order do
+				local Key = Order[a]
+				coroutine.yield(Key, Dictionary[Key])
 			end
-		end
-
-		return Iterator, Table, 0
+		end)
 	end
 end
 
@@ -151,8 +147,8 @@ local EscapeString do
 	function EscapeString(String)		
 		return (
 			String
-			:gsub("([().%+-*?[^$])", "%%%1")
-			:gsub("([\"'])", "\\%1")
+				:gsub("([().%+-*?[^$])", "%%%1")
+				:gsub("([\"'])", "\\%1")
 		)
 	end
 end
