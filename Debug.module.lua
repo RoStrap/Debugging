@@ -31,9 +31,11 @@ local AlphabeticalOrder do
 	
 	function AlphabeticalOrder(Dictionary)
 		local Order = {}
+		local Count = 0
 		
 		for Key in next, Dictionary do
-			Order[#Order + 1] = Key
+			Count = Count + 1
+			Order[Count] = Key
 		end
 		
 		table.sort(Order, Alphabetically)
