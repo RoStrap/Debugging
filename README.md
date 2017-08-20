@@ -30,10 +30,9 @@ string Debug.EscapeString (String)
 	// Those minus signs are so tricky!
 ```
 ```cs
-function Debug.AlphabeticalOrder (Table)
-	/// Iteration function generator that allows for loops to be sequenced in alphabetical order
-	// @param table Table That which will be iterated over in alphabetical order
-	//	@constraints Currently only accepts tables with string keys
-	// @returns function An iterative function that can traverse a table using a for loop
+function Debug.AlphabeticalOrder (Dictionary)
+	/// Iteration function that iterates over a dictionary in alphabetical order
+	// @param table Dictionary That which will be iterated over in alphabetical order
+	// A dictionary looks like this: {Apple = true, Noodles = 5, Soup = false}
 	// Not case-sensitive
 ```
