@@ -41,7 +41,7 @@ local AlphabeticalOrder do
 		table.sort(Order, Alphabetically)
 		
 		return coroutine.wrap(function()
-			for a = 1, #Order do
+			for a = 1, Count do
 				local Key = Order[a]
 				coroutine.yield(Key, Dictionary[Key])
 			end
