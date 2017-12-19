@@ -133,7 +133,7 @@ local TableToString do
 
 			return Output
 		else
-			error("[Debug] TableToString needs a table to convert to a string! Got type" .. typeof(Table))
+			error("[Debug] TableToString needs a table to convert to a string! Got type" .. typeof(Table), 2)
 		end
 	end
 end
