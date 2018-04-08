@@ -1,3 +1,5 @@
+-- RoStrap's Debugging Tools
+
 local DirectoryToString do
 	--- Gets the string of the directory of an object, properly formatted
 	-- string DirectoryToString(Object)
@@ -9,7 +11,6 @@ local DirectoryToString do
 		return (
 			Object
 				:GetFullName()
-				:gsub("^Workspace", "workspace")
 				:gsub("%.(%w*%s%w*)", "%[\"%1\"%]")
 				:gsub("%.(%d+[%w%s]+)", "%[\"%1\"%]")
 				:gsub("%.(%d+)", "%[%1%]")
