@@ -1,4 +1,6 @@
--- RoStrap's Debugging Tools
+-- Standard RoStrap Debugging Functions
+-- @repo https://github.com/RoStrap/Debug/
+-- @rostrap Debug
 
 local DirectoryToString do
 	--- Gets the string of the directory of an object, properly formatted
@@ -156,7 +158,72 @@ local EscapeString do
 	end
 end
 
+local Stringify do
+	-- Turns data into "TYPE_NAME NAME"
+	
+	function Stringify(Data)
+		local DataType = typeof(Data)
+		return DataType .. " " .. (DataType and ("\"" .. tostring(Data) .. "\"") or tostring(Data))
+	end
+end
+
+local Error, Assert do
+	-- Standard RoStrap Erroring system
+	-- Prefixing errors with '!' makes Error expect the [error origin].Name as first parameter after Error string
+	-- Past the initial Error string, subsequent arguments get unpacked in a string.format of the error string
+	-- Arguments formmatted into the string get stringified (see above function)
+	-- Assert falls back on Error
+	-- Error blames the latest item on the traceback as the cause of the error
+	-- Error makes it clear which Library and function are being misused
+	-- @author Validark
+	
+	local Replacers = {
+		["Index ?"] = "__index";
+	}
+
+	function Error(Err, ...)
+		local t = {...}
+		
+		local ErrorDepth = 1
+		local Traceback = debug.traceback()
+		
+	--	print(Traceback:gsub("([\r\n])[^\r\n]+upvalue Error[\r\n]", "%1", 1))
+		
+		local Prefix
+		Err, Prefix = Err:gsub("^!", "", 1)
+		local ModuleName = Prefix == 1 and table.remove(t, 1) or getfenv(2).script.Name
+		local FunctionName
+		
+		for i = 1, #t do
+			t[i] = Stringify(t[i]):gsub("table table", "table")
+		end
+		
+		for x in Traceback:sub(1, -11):gmatch("%- [^\r\n]+[\r\n]") do
+			FunctionName = x
+		end
+		
+		FunctionName = FunctionName:sub(3, -2):gsub("^%l", string.upper, 1):gsub(" ([^\n\r]+)", " %1", 1)
+		
+		local i = 0
+		for x in Err:gmatch("%%%l") do
+			i = i + 1
+			if x == "%q" then
+				t[i] = t[i]:gsub(" (%S+)$", " \"%1\"", 1)
+			end
+		end
+				
+		error(("[%s] {%s} " .. Err:gsub("%%q", "%%s")):format(ModuleName, Replacers[FunctionName] or FunctionName, unpack(t)), select(2, Traceback:gsub("\n", "")) - 1)
+	end
+	
+	function Assert(Condition, ...)
+		return Condition or Error(...)
+	end
+end
+
 return {
+	Error = Error;
+	Assert = Assert;
+	Stringify = Stringify;
 	EscapeString = EscapeString;
 	TableToString = TableToString;
 	DirectoryToString = DirectoryToString;
