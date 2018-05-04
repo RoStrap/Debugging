@@ -39,7 +39,7 @@ function Debug.AlphabeticalOrder (Dictionary)
 ```cs 
 function Debug.Error (string ErrorMessage, ... strings argumentsToFormatIn ...)
 	// Standard RoStrap Erroring system
-	// Prefixing errors with '!' makes Error expect the [error origin].Name as first parameter following ErrorMessage
+	// Prefixing ErrorMessage with '!' makes it expect the [error origin].Name as first parameter in {...}
 	// Past the initial Error string, subsequent arguments get unpacked in a string.format of the error string
 	// Arguments formmatted into the string get stringified (see above function)
 	// Assert falls back on Error
