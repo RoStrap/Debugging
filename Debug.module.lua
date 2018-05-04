@@ -1,6 +1,4 @@
 -- Standard RoStrap Debugging Functions
--- @repo https://github.com/RoStrap/Debug/
--- @rostrap Debug
 
 local DirectoryToString do
 	--- Gets the string of the directory of an object, properly formatted
@@ -162,12 +160,11 @@ local Stringify do
 	-- Turns data into "TYPE_NAME NAME"
 	
 	function Stringify(Data)
-		local DataType = typeof(Data)
-		return DataType .. " " .. (DataType and ("\"" .. tostring(Data) .. "\"") or tostring(Data))
+		return typeof(Data) .. " " .. tostring(Data)
 	end
 end
 
-local Error, Assert do
+local Warn, Error, Assert do
 	-- Standard RoStrap Erroring system
 	-- Prefixing errors with '!' makes Error expect the [error origin].Name as first parameter after Error string
 	-- Past the initial Error string, subsequent arguments get unpacked in a string.format of the error string
@@ -179,23 +176,24 @@ local Error, Assert do
 	
 	local Replacers = {
 		["Index ?"] = "__index";
+		["Newindex ?"] = "__newindex";
 	}
-
-	function Error(Err, ...)
+	
+	local function GetErrorData(Err, ...)
 		local t = {...}
 		
-		local ErrorDepth = 1
 		local Traceback = debug.traceback()
+		local ErrorDepth = select(2, Traceback:gsub("\n", "")) - 2
 		
 	--	print(Traceback:gsub("([\r\n])[^\r\n]+upvalue Error[\r\n]", "%1", 1))
 		
 		local Prefix
 		Err, Prefix = Err:gsub("^!", "", 1)
-		local ModuleName = Prefix == 1 and table.remove(t, 1) or getfenv(2).script.Name
+		local ModuleName = Prefix == 1 and table.remove(t, 1) or getfenv(ErrorDepth).script.Name
 		local FunctionName
 		
 		for i = 1, #t do
-			t[i] = Stringify(t[i]):gsub("table table", "table")
+			t[i] = Stringify(t[i]):gsub("table table", "table"):gsub("nil nil", "nil")
 		end
 		
 		for x in Traceback:sub(1, -11):gmatch("%- [^\r\n]+[\r\n]") do
@@ -212,15 +210,24 @@ local Error, Assert do
 			end
 		end
 				
-		error(("[%s] {%s} " .. Err:gsub("%%q", "%%s")):format(ModuleName, Replacers[FunctionName] or FunctionName, unpack(t)), select(2, Traceback:gsub("\n", "")) - 1)
+		return ("[%s] {%s} " .. Err:gsub("%%q", "%%s")):format(ModuleName, Replacers[FunctionName] or FunctionName, unpack(t)), ErrorDepth
+	end
+	
+	function Warn(...)
+		warn((GetErrorData(...)))
+	end
+
+	function Error(...)
+		error(GetErrorData(...))
 	end
 	
 	function Assert(Condition, ...)
-		return Condition or Error(...)
+		return Condition or error(GetErrorData(...))
 	end
 end
 
 return {
+	Warn = Warn;
 	Error = Error;
 	Assert = Assert;
 	Stringify = Stringify;
