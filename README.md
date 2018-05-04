@@ -36,22 +36,21 @@ function Debug.AlphabeticalOrder (Dictionary)
 	// A dictionary looks like this: {Apple = true, Noodles = 5, Soup = false}
 	// Not case-sensitive
 ```
-This will be fixed in a few days once I'm on a computer that isn't my phone:
 ```cs 
-function Debug.Error(ErrorMessage, argumentsToFormatIn)
-// Standard RoStrap Erroring system
-	Prefixing errors with '!' makes Error expect the [error origin].Name as first parameter after Error string
-	 Past the initial Error string, subsequent arguments get unpacked in a string.format of the error string
-	-- Arguments formmatted into the string get stringified (see above function)
-	-- Assert falls back on Error
-	-- Error blames the latest item on the traceback as the cause of the error
-	-- Error makes it clear which Library and function are being misused
-	-- @
-	
-	
-	
-
-	
-	
-	
+function Debug.Error (string ErrorMessage, ... strings argumentsToFormatIn ...)
+	// Standard RoStrap Erroring system
+	// Prefixing errors with '!' makes Error expect the [error origin].Name as first parameter following ErrorMessage
+	// Past the initial Error string, subsequent arguments get unpacked in a string.format of the error string
+	// Arguments formmatted into the string get stringified (see above function)
+	// Assert falls back on Error
+	// Error blames the latest item on the traceback as the cause of the error
+	// Error makes it clear which Library and function are being misused
+```
+```cs
+function Debug.Assert (bool Condition, ... TupleToSendToError ...)
+	// Returns Condition or Debug.Error(...)
+```
+```cs
+function Debug.Warn(string ErrorMessage, ... strings argumentsToFormatIn ...)
+	// Functions the same as Debug.Error, but internally calls warn instead of error
 ```
