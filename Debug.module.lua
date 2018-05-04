@@ -27,20 +27,31 @@ local AlphabeticalOrder do
 	-- @author Validark
 
 	local function Alphabetically(a, b)
-		return a:lower() < b:lower()
+		local typeA = type(a)
+		local typeB = type(b)
+
+		if typeA == typeB then
+			if typeA == "number" then
+				return a < b
+			else
+				return tostring(a):lower() < tostring(b):lower()
+			end
+		else
+			return typeA < typeB
+		end
 	end
-	
+
 	function AlphabeticalOrder(Dictionary)
 		local Order = {}
 		local Count = 0
-		
+
 		for Key in next, Dictionary do
 			Count = Count + 1
 			Order[Count] = Key
 		end
-		
+
 		table.sort(Order, Alphabetically)
-		
+
 		return coroutine.wrap(function()
 			for a = 1, Count do
 				local Key = Order[a]
