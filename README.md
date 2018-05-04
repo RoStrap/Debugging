@@ -23,21 +23,21 @@ string Debug.DirectoryToString (Object)
 	// @returns string A readable and properly formatted string of the directory
 ```
 ```cs
-string Debug.EscapeString (String)
+string Debug.EscapeString (string)
 	/// Turns strings into Lua-readble format
 	// @returns Objects location in proper Lua format
 	// Useful for when you are doing string-intensive coding
 	// Those minus signs are so tricky!
 ```
 ```cs
-function Debug.AlphabeticalOrder (Dictionary)
+function function Debug.AlphabeticalOrder (Dictionary)
 	/// Iteration function that iterates over a dictionary in alphabetical order
 	// @param table Dictionary That which will be iterated over in alphabetical order
 	// A dictionary looks like this: {Apple = true, Noodles = 5, Soup = false}
 	// Not case-sensitive
 ```
 ```cs 
-function Debug.Error (string ErrorMessage, ... strings argumentsToFormatIn ...)
+void function Debug.Error (string ErrorMessage, ... strings argumentsToFormatIn ...)
 	// Standard RoStrap Erroring system
 	// Prefixing ErrorMessage with '!' makes it expect the [error origin].Name as first parameter in {...}
 	// Past the initial Error string, subsequent arguments get unpacked in a string.format of the error string
@@ -47,10 +47,10 @@ function Debug.Error (string ErrorMessage, ... strings argumentsToFormatIn ...)
 	// Error makes it clear which Library and function are being misused
 ```
 ```cs
-function Debug.Assert (bool Condition, ... TupleToSendToError ...)
+<Condition, void> function Debug.Assert (Variant Condition, ... TupleToSendToError ...)
 	// Returns Condition or Debug.Error(...)
 ```
 ```cs
-function Debug.Warn(string ErrorMessage, ... strings argumentsToFormatIn ...)
+void function Debug.Warn(string ErrorMessage, ... strings argumentsToFormatIn ...)
 	// Functions the same as Debug.Error, but internally calls warn instead of error
 ```
