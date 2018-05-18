@@ -1,5 +1,5 @@
 # Debugging Tools
-In this repository are all of Nevermore's standard debugging tools.
+Standard RoStrap debugging library
 
 ## Standard Debug Module
 This module has standard helper functions to assist in debugging.
