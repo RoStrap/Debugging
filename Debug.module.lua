@@ -1,4 +1,8 @@
 -- Standard RoStrap Debugging Functions
+-- @author Validark
+
+local Resources = require(game:GetService("ReplicatedStorage"):WaitForChild("Resources"))
+local Table = Resources:LoadLibrary("Table")
 
 local DirectoryToString do
 	--- Gets the string of the directory of an object, properly formatted
@@ -326,7 +330,7 @@ local EscapeString do
 	end
 end
 
-return {
+return Table.Lock {
 	Warn = Warn;
 	Error = Error;
 	Assert = Assert;
