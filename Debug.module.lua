@@ -2,7 +2,6 @@
 -- @author Validark
 
 local Resources = require(game:GetService("ReplicatedStorage"):WaitForChild("Resources"))
-local Table = Resources:LoadLibrary("Table")
 
 local DirectoryToString do
 	--- Gets the string of the directory of an object, properly formatted
@@ -330,7 +329,7 @@ local EscapeString do
 	end
 end
 
-return Table.Lock {
+return {
 	Warn = Warn;
 	Error = Error;
 	Assert = Assert;
