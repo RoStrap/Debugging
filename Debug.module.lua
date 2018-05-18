@@ -1,8 +1,6 @@
 -- Standard RoStrap Debugging Functions
 -- @author Validark
 
-local Resources = require(game:GetService("ReplicatedStorage"):WaitForChild("Resources"))
-
 local DirectoryToString do
 	--- Gets the string of the directory of an object, properly formatted
 	-- string DirectoryToString(Object)
