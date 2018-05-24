@@ -1,34 +1,30 @@
 -- Standard RoStrap Debugging Functions
 -- @author Validark
 
-local DirectoryToString do
+local Debug = {}
+
+function Debug.DirectoryToString(Object)
 	--- Gets the string of the directory of an object, properly formatted
 	-- string DirectoryToString(Object)
 	-- @returns Objects location in proper Lua format
 	-- @author Validark
 	-- Corrects the built-in GetFullName function so that it returns properly formatted text.
-
-	function DirectoryToString(Object)
-		return (
-			Object
-				:GetFullName()
-				:gsub("%.(%w*%s%w*)", "%[\"%1\"%]")
-				:gsub("%.(%d+[%w%s]+)", "%[\"%1\"%]")
-				:gsub("%.(%d+)", "%[%1%]")
-			)
-	end
+	return (
+		Object
+			:GetFullName()
+			:gsub("%.(%w*%s%w*)", "%[\"%1\"%]")
+			:gsub("%.(%d+[%w%s]+)", "%[\"%1\"%]")
+			:gsub("%.(%d+)", "%[%1%]")
+		)
 end
 
-local Stringify do
+function Debug.Stringify(Data)
 	-- Turns data into "TYPE_NAME NAME"
-
-	function Stringify(Data)
-		local DataType = typeof(Data)
-		return DataType == "Instance" and Data.ClassName .. " " .. DirectoryToString(Data) or DataType .. " " .. tostring(Data)
-	end
+	local DataType = typeof(Data)
+	return DataType == "Instance" and Data.ClassName .. " " .. Debug.DirectoryToString(Data) or DataType .. " " .. tostring(Data)
 end
 
-local GetErrorData, Warn, Error, Assert do
+local GetErrorData do
 	-- Standard RoStrap Erroring system
 	-- Prefixing errors with '!' makes Error expect the [error origin].Name as first parameter after Error string
 	-- Past the initial Error string, subsequent arguments get unpacked in a string.format of the error string
@@ -43,7 +39,11 @@ local GetErrorData, Warn, Error, Assert do
 		["Newindex ?"] = "__newindex";
 	}
 
-	function GetErrorData(Err, ...)
+	local function Format(String, ...)
+		return String:format(...)
+	end
+
+	function GetErrorData(Err, ...) -- Make sure if you don't intend to format arguments in, you do %%f instead of %f
 		local t = {...}
 
 		local Traceback = debug.traceback()
@@ -57,14 +57,14 @@ local GetErrorData, Warn, Error, Assert do
 		local FunctionName
 
 		for i = 1, #t do
-			t[i] = Stringify(t[i]):gsub("table table", "table"):gsub("nil nil", "nil")
+			t[i] = Debug.Stringify(t[i]):gsub("table table", "table"):gsub("nil nil", "nil")
 		end
 
 		for x in Traceback:sub(1, -11):gmatch("%- [^\r\n]+[\r\n]") do
 			FunctionName = x
 		end
 
-		FunctionName = FunctionName:sub(3, -2):gsub("^%l", string.upper, 1):gsub(" ([^\n\r]+)", " %1", 1)
+		FunctionName = FunctionName:sub(3, -2):gsub("%l+ (%S+)$", "%1"):gsub("^%l", string.upper, 1):gsub(" ([^\n\r]+)", " %1", 1)
 
 		local i = 0
 		for x in Err:gmatch("%%%l") do
@@ -74,30 +74,29 @@ local GetErrorData, Warn, Error, Assert do
 			end
 		end
 
-		return ("[%s] {%s} " .. Err:gsub("%%q", "%%s")):format(ModuleName, Replacers[FunctionName] or FunctionName, unpack(t)), ErrorDepth
+		local Success, ErrorString = pcall(Format, "[%s] {%s} " .. Err:gsub("%%q", "%%s"), ModuleName, Replacers[FunctionName] or FunctionName, unpack(t))
+
+		if Success then
+			return ErrorString, ErrorDepth
+		else
+			error(GetErrorData("!Error formatting failed, perhaps try escaping non-formattable tags like so: %%%%f\n(Error Message): " .. ErrorString, "Debug"))
+		end
 	end
 
-	function Warn(...)
+	function Debug.Warn(...)
 		warn((GetErrorData(...)))
 	end
 
-	function Error(...)
+	function Debug.Error(...)
 		error(GetErrorData(...))
 	end
 
-	function Assert(Condition, ...)
+	function Debug.Assert(Condition, ...)
 		return Condition or error(GetErrorData(...))
 	end
 end
 
-local AlphabeticalOrder do
-	--- Iteration function that iterates over a dictionary in alphabetical order
-	-- function AlphabeticalOrder(Dictionary)
-	-- @param table Dictionary That which will be iterated over in alphabetical order
-	-- A dictionary looks like this: {Apple = true, Noodles = 5, Soup = false}
-	-- Not case-sensitive
-	-- @author Validark
-
+do
 	local function Alphabetically(a, b)
 		local typeA = type(a)
 		local typeB = type(b)
@@ -113,7 +112,14 @@ local AlphabeticalOrder do
 		end
 	end
 
-	function AlphabeticalOrder(Dictionary)
+	function Debug.AlphabeticalOrder(Dictionary)
+		--- Iteration function that iterates over a dictionary in alphabetical order
+		-- function AlphabeticalOrder(Dictionary)
+		-- @param table Dictionary That which will be iterated over in alphabetical order
+		-- A dictionary looks like this: {Apple = true, Noodles = 5, Soup = false}
+		-- Not case-sensitive
+		-- @author Validark
+
 		local Count = 0
 		local Order = {}
 
@@ -137,60 +143,59 @@ local AlphabeticalOrder do
 	end
 end
 
-local UnionIteratorFunctions do
+function Debug.UnionIteratorFunctions(...)
 	-- Takes in functions ..., and returns a function which unions them, which can be called on a table
 	-- Will iterate through a table, using the iterator functions passed in from left to right
 	-- Will pass the CurrentIteratorFunction index in the stack as the last variable
-	-- UnionIteratorFunctions(Get0, ipairs, AlphabeticalOrder)(Table)
+	-- UnionIteratorFunctions(Get0, ipairs, Debug.AlphabeticalOrder)(Table)
 
-	function UnionIteratorFunctions(...)
-		local IteratorFunctions = {...}
+	local IteratorFunctions = {...}
+
+	for i = 1, #IteratorFunctions do
+		if type(IteratorFunctions[i]) ~= "function" then
+			error(GetErrorData("Cannot union Iterator functions which aren't functions"))
+		end
+	end
+
+	return function(Table)
+		local Count = 0
+		local Order = {[0] = {}}
+		local KeysSeen = {}
+
 		for i = 1, #IteratorFunctions do
-			if type(IteratorFunctions[i]) ~= "function" then
-				error(GetErrorData("Cannot union Iterator functions which aren't functions"))
+			local Function, TableToIterateThrough, Next = IteratorFunctions[i](Table)
+
+			if type(Function) ~= "function" or type(TableToIterateThrough) ~= "table" then
+				error(GetErrorData("Iterator function " .. i .. " must return a stack of types as follows: Function, Table, Variant"))
+			end
+
+			while true do
+				local Data = {Function(TableToIterateThrough, Next)}
+				Next = Data[1]
+				if Next == nil then break end
+				if not KeysSeen[Next] then
+					KeysSeen[Next] = true
+					Count = Count + 1
+					Data[#Data + 1] = i
+					Order[Count] = Data
+				end
 			end
 		end
 
-		return function(Table)
-			local Count = 0
-			local Order = {[0] = {}}
-			local KeysSeen = {}
-
-			for i = 1, #IteratorFunctions do
-				local Function, TableToIterateThrough, Next = IteratorFunctions[i](Table)
-
-				if type(Function) ~= "function" or type(TableToIterateThrough) ~= "table" then
-					error(GetErrorData("Iterator function " .. i .. " must return a stack of types as follows: Function, Table, Variant"))
-				end
-
-				while true do
-					local Data = {Function(TableToIterateThrough, Next)}
-					Next = Data[1]
-					if Next == nil then break end
-					if not KeysSeen[Next] then
-						KeysSeen[Next] = true
-						Count = Count + 1
-						Data[#Data + 1] = i
-						Order[Count] = Data
+		return function(_, Previous)
+			for i = 0, Count do
+				if Order[i][1] == Previous then
+					local Data = Order[i + 1]
+					if Data then
+						return unpack(Data)
+					else
+						return nil
 					end
 				end
 			end
 
-			return function(_, Previous)
-				for i = 0, Count do
-					if Order[i][1] == Previous then
-						local Data = Order[i + 1]
-						if Data then
-							return unpack(Data)
-						else
-							return nil
-						end
-					end
-				end
-
-				error(GetErrorData("invalid key to unioned iterator function: " .. Previous))
-			end, Table, nil
-		end
+			error(GetErrorData("invalid key to unioned iterator function: " .. Previous))
+		end, Table, nil
 	end
 end
 
@@ -199,13 +204,7 @@ local EachOrder do
 	-- EachOrder(Get0(Table), ipairs(Table), AlphabeticalOrder(Table))
 end
 
-local TableToString do
-	--- Converts a table into a readable string
-	-- string TableToString(Table, TableName, Multiline)
-	-- @param table Table The Table to convert into a readable string
-	-- @param string TableName Optional Name parameter that puts a "[TableName] = " at the beginning
-	-- @returns a readable string version of the table
-
+do
 	local function Get0(t)
 		return function(t2, val)
 			if val == nil and t2[0] ~= nil then
@@ -215,7 +214,7 @@ local TableToString do
 	end
 
 	local typeof = typeof or type
-	local ArrayOrderThenAlphabetically = UnionIteratorFunctions(Get0, ipairs, AlphabeticalOrder)
+	local ArrayOrderThenAlphabetically = Debug.UnionIteratorFunctions(Get0, ipairs, Debug.AlphabeticalOrder)
 	local ConvertTableIntoString
 
 	local function Parse(Object, Multiline, Depth, EncounteredTables)
@@ -236,15 +235,13 @@ local TableToString do
 
 		return
 			Type == "string" and "\"" .. Object .. "\"" or
-			Type == "Instance" and "<" .. DirectoryToString(Object) .. ">" or
+			Type == "Instance" and "<" .. Debug.DirectoryToString(Object) .. ">" or
 			(Type == "function" or Type == "userdata") and Type or
 			tostring(Object)
 	end
 
 	function ConvertTableIntoString(Table, TableName, Multiline, Depth, EncounteredTables)
 		if type(Table) == "table" then
-			Depth = Depth or 1
-			EncounteredTables = EncounteredTables or {}
 			EncounteredTables[#EncounteredTables + 1] = Table
 
 			local Output = {}
@@ -302,39 +299,35 @@ local TableToString do
 		end
 	end
 
-	function TableToString(Table, TableName, Multiline)
-		return ConvertTableIntoString(Table, TableName, Multiline)
+	function Debug.TableToString(Table, TableName, Multiline)
+		--- Converts a table into a readable string
+		-- string TableToString(Table, TableName, Multiline)
+		-- @param table Table The Table to convert into a readable string
+		-- @param string TableName Optional Name parameter that puts a "[TableName] = " at the beginning
+		-- @returns a readable string version of the table
+
+		return ConvertTableIntoString(Table, TableName, Multiline, 1, {})
 	end
 end
 
-local EscapeString do
-	--- Turns strings into Lua-readble format
-	-- string Debug.EscapeString(String)
-	-- @returns Objects location in proper Lua format
-	-- @author Validark
-	-- Useful for when you are doing string-intensive coding
-	-- Those minus signs always get me when I'm not using this function!
-
+do
 	local EscapedCharacters = {"%", "^", "$", "(", ")", ".", "[", "]", "*", "+", "-", "?"}
 	local Escapable = "([%" .. table.concat(EscapedCharacters, "%") .. "])"
 
-	function EscapeString(String)
+	function Debug.EscapeString(String)
+		--- Turns strings into Lua-readble format
+		-- string Debug.EscapeString(String)
+		-- @returns Objects location in proper Lua format
+		-- @author Validark
+		-- Useful for when you are doing string-intensive coding
+		-- Those minus signs always get me when I'm not using this function!
+
 		return (
 			String
 				:gsub(Escapable, "%%%1")
-				:gsub("([\"'])", "\\%1")
+				:gsub("([\"\'\\])", "\\%1")
 		)
 	end
 end
 
-return {
-	Warn = Warn;
-	Error = Error;
-	Assert = Assert;
-	Stringify = Stringify;
-	EscapeString = EscapeString;
-	TableToString = TableToString;
-	DirectoryToString = DirectoryToString;
-	AlphabeticalOrder = AlphabeticalOrder;
-	UnionIteratorFunctions = UnionIteratorFunctions;
-}
+return Debug
