@@ -1,6 +1,9 @@
 -- Standard RoStrap Debugging Functions
 -- @author Validark
 
+local Resources = require(game:GetService("ReplicatedStorage"):WaitForChild("Resources"))
+local Table = Resources:LoadLibrary("Table")
+
 local Debug = {}
 
 function Debug.DirectoryToString(Object)
@@ -330,4 +333,4 @@ do
 	end
 end
 
-return Debug
+return Table.Lock(Debug)
