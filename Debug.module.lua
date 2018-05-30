@@ -327,4 +327,16 @@ do
 	end
 end
 
+--- Returns a string representation of anything.
+-- @param any Object The object you wish to represent as a string.
+-- @returns a readable string representation of the object.
+-- @author evaera
+function Debug.Inspect(Object)
+	if type(Object) == "table" then
+		return string.format("table %s", Debug.TableToString(Object))
+	else
+		return Debug.Stringify(Object)
+	end
+end
+
 return Table.Lock(Debug)

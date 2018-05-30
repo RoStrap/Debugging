@@ -22,6 +22,13 @@ string Debug.DirectoryToString (RbxObject Object)
 	// @param RbxObject Object the Object to get the directory of
 	// @returns string A readable and properly formatted string of the directory
 ```
+
+```cs
+string Debug.Inspect (any Object)
+	/// Returns a string representation of anything.
+	// @param any Object The object you wish to represent as a string.
+	// @returns a readable string representation of the object.
+```
 ```cs
 string Debug.EscapeString (string String)
 	/// Turns strings into Lua-readble format
