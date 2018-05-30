@@ -131,17 +131,11 @@ do
 			Order[Count] = Key
 		end
 
-		table.sort(Order, Alphabetically)
+		Resources:LoadLibrary("SortedArray").new(Order, Alphabetically)
 
 		return function(Table, Previous)
-			for i = 0, Count do
-				if Order[i] == Previous then
-					local Key = Order[i + 1]
-					return Key, Table[Key]
-				end
-			end
-
-			error(GetErrorData("invalid key to 'AlphabeticalOrder' " .. Previous))
+			local Key = Order[Previous == nil and 1 or ((Order:Find(Previous) or error("invalid key to 'AlphabeticalOrder' " .. tostring(Previous))) + 1)]
+			return Key, Table[Key]
 		end, Dictionary, nil
 	end
 end
