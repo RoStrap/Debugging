@@ -24,13 +24,16 @@ end
 function Debug.Stringify(Data)
 	-- Turns data into "TYPE_NAME NAME"
 	local DataType = typeof(Data)
+	local DataString
 
 	if DataType == "Instance" then
-		return Data.ClassName .. " " .. Debug.DirectoryToString(Data)
+		DataType = Data.ClassName
+		DataString = Debug.DirectoryToString(Data)
 	else
-		local DataString = tostring(Data)
-		return DataType == DataString and DataString or DataType .. " " .. DataString
+		DataString = tostring(Data)
 	end
+		
+	return DataType == DataString and DataString or DataType .. " " .. DataString
 end
 
 local GetErrorData do
@@ -66,7 +69,7 @@ local GetErrorData do
 		local FunctionName
 
 		for i = 1, #t do
-			t[i] = Debug.Stringify(t[i]):gsub("table table", "table"):gsub("nil nil", "nil")
+			t[i] = Debug.Stringify(t[i])
 		end
 
 		for x in Traceback:sub(1, -11):gmatch("%- [^\r\n]+[\r\n]") do
