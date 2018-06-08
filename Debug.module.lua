@@ -24,7 +24,13 @@ end
 function Debug.Stringify(Data)
 	-- Turns data into "TYPE_NAME NAME"
 	local DataType = typeof(Data)
-	return DataType == "Instance" and Data.ClassName .. " " .. Debug.DirectoryToString(Data) or DataType .. " " .. tostring(Data)
+
+	if DataType == "Instance" then
+		return Data.ClassName .. " " .. Debug.DirectoryToString(Data)
+	else
+		local DataString = tostring(Data)
+		return DataType == DataString and DataString or DataType .. " " .. DataString
+	end
 end
 
 local GetErrorData do
@@ -333,7 +339,7 @@ end
 -- @author evaera
 function Debug.Inspect(Object)
 	if type(Object) == "table" then
-		return string.format("table %s", Debug.TableToString(Object))
+		return "table " .. Debug.TableToString(Object)
 	else
 		return Debug.Stringify(Object)
 	end
