@@ -82,7 +82,7 @@ local GetErrorData do
 		for x in Err:gmatch("%%%l") do
 			i = i + 1
 			if x == "%q" then
-				t[i] = t[i]:gsub(" (%S+)$", " \"%1\"", 1)
+				t[i] = (t[i] or "nil"):gsub(" (%S+)$", " \"%1\"", 1)
 			end
 		end
 
