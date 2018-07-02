@@ -54,6 +54,8 @@ local GetErrorData do
 	local function Format(String, ...)
 		return String:format(...)
 	end
+	
+	local CommandBar = {Name = "Command bar"}
 
 	function GetErrorData(Err, ...) -- Make sure if you don't intend to format arguments in, you do %%f instead of %f
 		local t = {...}
@@ -65,7 +67,7 @@ local GetErrorData do
 
 		local Prefix
 		Err, Prefix = Err:gsub("^!", "", 1)
-		local ModuleName = Prefix == 1 and table.remove(t, 1) or getfenv(ErrorDepth).script.Name
+		local ModuleName = Prefix == 1 and table.remove(t, 1) or (getfenv(ErrorDepth).script or CommandBar).Name
 		local FunctionName
 
 		for i = 1, #t do
