@@ -63,14 +63,12 @@ local GetErrorData do
 		local Traceback = debug.traceback()
 		local ErrorDepth = select(2, Traceback:gsub("\n", "")) - 2
 
-	--	print(Traceback:gsub("([\r\n])[^\r\n]+upvalue Error[\r\n]", "%1", 1))
-
 		local Prefix
 		Err, Prefix = Err:gsub("^!", "", 1)
 		local ModuleName = Prefix == 1 and table.remove(t, 1) or (getfenv(ErrorDepth).script or CommandBar).Name
 		local FunctionName
 
-		for i = 1, #t do
+		for i = 1, select("#", ...) do
 			t[i] = Debug.Stringify(t[i])
 		end
 
@@ -84,7 +82,7 @@ local GetErrorData do
 		for x in Err:gmatch("%%%l") do
 			i = i + 1
 			if x == "%q" then
-				t[i] = (t[i] or "nil"):gsub(" (%S+)$", " \"%1\"", 1)
+				t[i] = t[i]:gsub(" (%S+)$", " \"%1\"", 1)
 			end
 		end
 
