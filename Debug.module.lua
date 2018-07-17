@@ -255,13 +255,25 @@ do
 
 			for Key, Value, Iter in ArrayOrderThenAlphabetically(Table) do
 				if Iter < 3 then
+					if OutputCount == 0 and Multiline then
+						Output[OutputCount + 1] = "\n"
+						Output[OutputCount + 2] = ("\t"):rep(Depth)
+						OutputCount = OutputCount + 2
+					end
+
 					Output[OutputCount + 1] = (Iter == 1 and "[0] = " or "") .. Parse(Value, Multiline, Depth, EncounteredTables)
 					Output[OutputCount + 2] = ", "
 					OutputCount = OutputCount + 2
 				else
-					Output[OutputCount + 1] = Multiline and "\n" .. ("\t"):rep(Depth) or ""
-
-					if type(Key) == "string" and not Key:find("^%d") then
+					if Multiline then
+						OutputCount = OutputCount + 1
+						Output[OutputCount] = "\n"
+						Output[OutputCount + 1] = ("\t"):rep(Depth)
+					else
+						OutputCount = OutputCount - 1
+					end
+					
+					if type(Key) == "string" and not Key:find("^%d") and not Key:find("%s") then
 						Output[OutputCount + 2] = Key
 						OutputCount = OutputCount - 2
 					else
@@ -276,32 +288,50 @@ do
 					OutputCount = OutputCount + 7
 				end
 			end
-
-			if Multiline then
-				Output[OutputCount + 1] = "\n" .. ("\t"):rep(Depth - 1)
-			else
-				Output[OutputCount] = nil
+			
+			local OutputStart = 1
+			
+			if Output[OutputCount] == ", " then
+				if Multiline then
+					OutputStart = OutputStart + 2
+				end
+				OutputCount = OutputCount - 1
+			elseif Multiline then
+				Output[OutputCount + 1] = "\n"
+				Output[OutputCount + 2] = ("\t"):rep(Depth)
+				OutputCount = OutputCount + 2
 			end
 
 			local Metatable = getmetatable(Table)
 
-			Output = "{" .. table.concat(Output) .. "}"
+			OutputStart = OutputStart - 1
+
+			if not Multiline or Output[OutputCount - 1] ~= "\n" then
+				OutputCount = OutputCount + 1
+			end
+
+			Output[OutputStart] = "{"
+			Output[OutputCount] = "}"
 
 			if Metatable then
 				if type(Metatable) == "table" then
-					Output = Output .. " <- " .. ConvertTableIntoString(Metatable, nil, Multiline, nil, EncounteredTables)
+					Output[OutputCount + 1] = " <- "
+					Output[OutputCount + 2] = ConvertTableIntoString(Metatable, nil, Multiline, nil, EncounteredTables)
+					OutputCount = OutputCount + 2
 				else
 					warn((GetErrorData((TableName or "Table") .. "'s metatable cannot be accessed. Got:\n" .. tostring(Metatable))))
 				end
 			end
 
 			if TableName then
-				Output = TableName .. " = " .. Output
+				Output[OutputStart - 1] = " = "
+				Output[OutputStart - 2] = TableName
+				OutputStart = OutputStart - 2
 			end
 
-			return Output
+			return table.concat(Output, "", OutputStart, OutputCount)
 		else
-			error(GetErrorData("[Debug] TableToString needs a table to convert to a string! Got type" .. typeof(Table)))
+			error(GetErrorData("[Debug] TableToString needs a table to convert to a string! Got type " .. typeof(Table)))
 		end
 	end
 
