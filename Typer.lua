@@ -115,6 +115,30 @@ local function TransformTableCheckerData(PotentialTypes)
 	return PotentialTypes
 end
 
+local function Check(PotentialTypes, Parameter, ArgumentNumber)
+	local TypeOf = typeof(Parameter)
+
+	for i = 1, #PotentialTypes do
+		if PotentialTypes[i] == TypeOf then
+			return Parameter or true
+		end
+	end
+
+	for Key, CheckFunction in next, PotentialTypes do
+		if type(Key) == "string" and CheckFunction(Parameter, TypeOf) then
+			return Parameter or true
+		end
+	end
+
+	local ArgumentNumberType = type(ArgumentNumber)
+
+	return false, "bad argument"
+		.. (ArgumentNumber and (ArgumentNumberType == "number" and " #" .. ArgumentNumber or ArgumentNumberType == "string" and " to " .. ArgumentNumber) or "")
+		.. PotentialTypes[0] .. ", got " .. Debug.Inspect(Parameter)
+end
+
+local CallToCheck = {__call = Check}
+
 local Typer = setmetatable({}, {
 	__index = function(self, i)
 		local t = {}
@@ -141,29 +165,9 @@ local Typer = setmetatable({}, {
 			t[#t + 1] = BuiltInTypes[i] or i
 		end
 
-		return TransformTableCheckerData(t)
+		return setmetatable(TransformTableCheckerData(t), CallToCheck)
 	end;
 })
-
-local function Check(PotentialTypes, Parameter, ArgumentNumber)
-	local TypeOf = typeof(Parameter)
-
-	for i = 1, #PotentialTypes do
-		if PotentialTypes[i] == TypeOf then
-			return true
-		end
-	end
-
-	for Key, CheckFunction in next, PotentialTypes do
-		if type(Key) == "string" and CheckFunction(Parameter, TypeOf) then
-			return true
-		end
-	end
-
-	local ArgumentNumberType = type(ArgumentNumber)
-
-	return false, "bad argument" .. (ArgumentNumber and (ArgumentNumberType == "number" and " #" .. ArgumentNumber or ArgumentNumberType == "string" and " to " .. ArgumentNumber) or "") .. PotentialTypes[0] .. ", got " .. Debug.Inspect(Parameter)
-end
 
 function Typer.AssignSignature(...)
 	local StackSignature = {...}
@@ -197,19 +201,19 @@ function Typer.AssignSignature(...)
 	end
 end
 
-Typer.Check = Typer.AssignSignature(Typer.Table, Typer.Any, {"string", "number", "nil"}, function(PotentialTypes, Parameter, ArgumentNumber)
+Typer.Check = Typer.AssignSignature(Typer.Table, Typer.Any, {"nil", "string", "number"}, function(PotentialTypes, Parameter, ArgumentNumber)
 	return Check(TransformTableCheckerData(PotentialTypes), Parameter, ArgumentNumber)
 end)
 
 local Map__call = {
 	__call = function(self, Tab, TabType)
 		if (TabType or type(Tab)) ~= "table" then
-			return Debug.Error("|Map.__call| Must be called with a Table")
+			return false, "|Map.__call| Must be called with a Table"
 		end
 
 		for Index in next, Tab do
 			if not self[Index] then
-				return Debug.Error("|Map.__call| %s is not a valid Key", Index)
+				return false, "|Map.__call| " .. Debug.Inspect(Index) .. " is not a valid Key"
 			end
 		end
 
@@ -217,7 +221,7 @@ local Map__call = {
 			local Success, Error = Typer.Check(Type, Tab[Index], Index)
 
 			if not Success then
-				Debug.Error("|Map.__call| " .. Error)
+				return false, "|Map.__call| " .. Error
 			end
 		end
 
