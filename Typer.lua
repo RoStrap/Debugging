@@ -64,12 +64,8 @@ local CustomTypes = {
 		return Type == "Enum" or Type == "EnumItem"
 	end;
 
-	EnumType = function(_, Type)
+	EnumType = function(_, Type) -- For whatever reason, typeof() returns "Enum" for EnumItems
 		return Type == "Enum"
-	end;
-
-	Player = function(Value, Type)
-		return Type == "Instance" and Value.ClassName == "Player"
 	end;
 }
 
@@ -126,10 +122,24 @@ local Typer = setmetatable({}, {
 
 		if i:find("^Optional", 1, false) then
 			i = i:sub(9)
-			t[2] = "nil"
+			t[1] = "nil"
 		end
 
-		t[1] = BuiltInTypes[i] or i
+		if i:find("^InstanceOfClass") then
+			local ClassName = i:sub(16)
+
+			t[ClassName] = function(Value, Type)
+				return Type == "Instance" and Value.ClassName == ClassName
+			end
+		elseif i:find("^InstanceWhichIsA") then
+			local ClassName = i:sub(17)
+
+			t[ClassName] = function(Value, Type)
+				return Type == "Instance" and Value:IsA(ClassName)
+			end
+		else
+			t[#t + 1] = BuiltInTypes[i] or i
+		end
 
 		return TransformTableCheckerData(t)
 	end;
