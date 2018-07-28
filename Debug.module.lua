@@ -21,21 +21,6 @@ function Debug.DirectoryToString(Object)
 		)
 end
 
-function Debug.Stringify(Data)
-	-- Turns data into "TYPE_NAME NAME"
-	local DataType = typeof(Data)
-	local DataString
-
-	if DataType == "Instance" then
-		DataType = Data.ClassName
-		DataString = Debug.DirectoryToString(Data)
-	else
-		DataString = tostring(Data)
-	end
-		
-	return DataType == DataString and DataString or DataType .. " " .. DataString
-end
-
 local GetErrorData do
 	-- Standard RoStrap Erroring system
 	-- Prefixing errors with '!' makes Error expect the [error origin].Name as first parameter after Error string
@@ -54,7 +39,7 @@ local GetErrorData do
 	local function Format(String, ...)
 		return String:format(...)
 	end
-	
+
 	local CommandBar = {Name = "Command bar"}
 
 	function GetErrorData(Err, ...) -- Make sure if you don't intend to format arguments in, you do %%f instead of %f
@@ -69,7 +54,7 @@ local GetErrorData do
 		local FunctionName
 
 		for i = 1, select("#", ...) do
-			t[i] = Debug.Stringify(t[i])
+			t[i] = Debug.Inspect(t[i])
 		end
 
 		for x in Traceback:sub(1, -11):gmatch("%- [^\r\n]+[\r\n]") do
@@ -272,7 +257,7 @@ do
 					else
 						OutputCount = OutputCount - 1
 					end
-					
+
 					if type(Key) == "string" and not Key:find("^%d") and not Key:find("%s") then
 						Output[OutputCount + 2] = Key
 						OutputCount = OutputCount - 2
@@ -288,9 +273,9 @@ do
 					OutputCount = OutputCount + 7
 				end
 			end
-			
+
 			local OutputStart = 1
-			
+
 			if Output[OutputCount] == ", " then
 				if Multiline then
 					OutputStart = OutputStart + 2
@@ -366,16 +351,22 @@ do
 	end
 end
 
---- Returns a string representation of anything.
--- @param any Object The object you wish to represent as a string.
--- @returns a readable string representation of the object.
--- @author evaera
-function Debug.Inspect(Object)
-	if type(Object) == "table" then
-		return "table " .. Debug.TableToString(Object)
+function Debug.Inspect(Data)
+	--- Returns a string representation of anything
+	-- @param any Object The object you wish to represent as a string
+	-- @returns a readable string representation of the object
+
+	local DataType = typeof(Data)
+	local DataString
+
+	if DataType == "Instance" then
+		DataType = Data.ClassName
+		DataString = Debug.DirectoryToString(Data)
 	else
-		return Debug.Stringify(Object)
+		DataString = type(Data) == "table" and Debug.TableToString(Data) or tostring(Data)
 	end
+
+	return ((DataType .. " " .. DataString):gsub("^" .. DataType .. " " .. DataType, DataType, 1))
 end
 
 return Table.Lock(Debug)
