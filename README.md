@@ -2,5 +2,5 @@
 Standard RoStrap debugging library.
 
 Click the following links for documentation:
-- [Debug](https://rostrap.github.io/Libraries/Debug/Debug)
-- [Typer](https://rostrap.github.io/Libraries/Debug/Typer)
+- [Debug](https://rostrap.github.io/Libraries/Debugging/Debug)
+- [Typer](https://rostrap.github.io/Libraries/Debugging/Typer)
