@@ -227,6 +227,9 @@ local Map__call = {
 
 Typer.MapDefinition = Typer.AssignSignature(Typer.Table, function(Template)
 	for _, Type in next, Template do
+		if type(Type) ~= "table" then
+			return Debug.Error("Values must be tables")
+		end
 		TransformTableCheckerData(Type)
 	end
 
