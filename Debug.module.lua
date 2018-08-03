@@ -61,7 +61,7 @@ local GetErrorData do
 			FunctionName = x
 		end
 
-		FunctionName = FunctionName:sub(3, -2):gsub("%l+ (%S+)$", "%1"):gsub("^%l", string.upper, 1):gsub(" ([^\n\r]+)", " %1", 1)
+		FunctionName = FunctionName:sub(3, -2):gsub("%l+ (%S+)$", "%1"):gsub(" ([^\n\r]+)", " %1", 1)
 
 		local i = 0
 		for x in Err:gmatch("%%%l") do
