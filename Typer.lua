@@ -164,6 +164,14 @@ local CustomTypes = {
 	EnumType = function(_, Type) -- For whatever reason, typeof() returns "Enum" for EnumItems
 		return Type == "Enum"
 	end;
+
+	True = function(Value)
+		return Value == true
+	end;
+
+	False = function(Value)
+		return Value == false
+	end;
 }
 
 local function TransformTableCheckerData(PotentialTypes)
