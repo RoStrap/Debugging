@@ -1,14 +1,14 @@
--- Type Checker and Function Signature Assigner
+-- Powerful, light-weight type checker
 -- @author Validark
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Resources = require(ReplicatedStorage:WaitForChild("Resources"))
 
-local Debug = Resources:LoadLibrary("Debug")
 local Table = Resources:LoadLibrary("Table")
 
 local BuiltInTypes = {
 	Nil = "nil";
+	Bool = "boolean";
 	Boolean = "boolean";
 	Number = "number";
 	String = "string";
@@ -23,33 +23,90 @@ local CustomTypes = {
 		return true
 	end;
 
-	Array = function(Value, Type)
+	Array = function(Array, Type, Callback, Castable)
 		if Type ~= "table" then
 			return false
 		end
 
-		local Count = 0
-		local Keys = {}
+		local Size = #Array
+		local Bool = false
 
-		for Key in next, Value do
-			Count = Count + 1
-
-			if type(Key) ~= "number" then
+		for Key, Value in next, Array do
+			Bool = true
+			if type(Key) ~= "number" or Key % 1 ~= 0 or Key < 1 or Key > Size then
 				return false
-			end
+			elseif Callback then
+				local Success = Callback(Value)
 
-			Keys[Count] = Key
+				if Success then
+					if Castable then
+						Array[Key] = Success
+					end
+				else
+					return false
+				end
+			end
 		end
 
-		table.sort(Keys)
+		return Bool
+	end;
 
-		for i = 1, Count do
-			if Keys[i] ~= i then
+	Dictionary = function(Dictionary, Type, Callback, Castable)
+		if Type ~= "table" then
+			return false
+		end
+
+		local Bool = false
+
+		for Key, Value in next, Dictionary do
+			Bool = true
+			if type(Key) == "number" then
 				return false
+			elseif Callback then
+				local Success = Callback(Value)
+
+				if Success then
+					if Castable then
+						Dictionary[Key] = Success
+					end
+				else
+					return false
+				end
 			end
 		end
 
-		return true
+		return Bool
+	end;
+
+	Table = function(Table, Type, Callback, Castable)
+		if Type ~= "table" then
+			return false
+		end
+
+		if Callback then
+			local Bool = false
+
+			for Key, Value in next, Table do
+				Bool = true
+				local Success = Callback(Value)
+
+				if Success then
+					if Castable then
+						Table[Key] = Success
+					end
+				else
+					return false
+				end
+			end
+
+			return Bool
+		else
+			return true
+		end
+	end;
+
+	EmptyTable = function(Value, Type)
+		return Type ~= "table" or next(Value) == nil
 	end;
 
 	NonNil = function(Value)
@@ -58,6 +115,46 @@ local CustomTypes = {
 
 	Integer = function(Value, Type)
 		return Type == "number" and Value % 1 == 0
+	end;
+
+	PositiveInteger = function(Value, Type)
+		return Type == "number" and Value > 0 and Value % 1 == 0
+	end;
+
+	NegativeInteger = function(Value, Type)
+		return Type == "number" and Value < 0 and Value % 1 == 0
+	end;
+
+	NonPositiveInteger = function(Value, Type)
+		return Type == "number" and Value <= 0 and Value % 1 == 0
+	end;
+
+	NonNegativeInteger = function(Value, Type)
+		return Type == "number" and Value >= 0 and Value % 1 == 0
+	end;
+
+	PositiveNumber = function(Value, Type)
+		return Type == "number" and Value > 0
+	end;
+
+	NegativeNumber = function(Value, Type)
+		return Type == "number" and Value < 0
+	end;
+
+	NonPositiveNumber = function(Value, Type)
+		return Type == "number" and Value <= 0
+	end;
+
+	NonNegativeNumber = function(Value, Type)
+		return Type == "number" and Value >= 0
+	end;
+
+	Truthy = function(Value)
+		return Value and true or false
+	end;
+
+	Falsy = function(Value)
+		return not Value
 	end;
 
 	Enum = function(_, Type)
@@ -72,7 +169,7 @@ local CustomTypes = {
 local function TransformTableCheckerData(PotentialTypes)
 	-- [0] is the Expectation string
 	-- Array in the form {"number", "string", "nil"} where each value is a string matchable by typeof()
-	-- Key-Value pairs in the form {[string Name] = function 123}
+	-- Key-Value pairs in the form {[string Name] = function}
 
 	if not PotentialTypes[0] then -- It was already transformed if written to 0, no haxing pls
 		local Expectation = ": expected "
@@ -80,10 +177,11 @@ local function TransformTableCheckerData(PotentialTypes)
 
 		for Name in next, PotentialTypes do
 			local NameType = type(Name)
+
 			if NameType == "string" then
 				Expectation = Expectation .. Name .. " or "
 			elseif NameType ~= "number" then
-				Debug.Error("Key-Value pairs should be in the form [string Name] = function 123, got %s", Name)
+				Resources:LoadLibrary("Debug").Error("Key-Value pairs should be in the form [string Name] = function, got %s", Name)
 			end
 		end
 
@@ -95,7 +193,7 @@ local function TransformTableCheckerData(PotentialTypes)
 			local PotentialType = PotentialTypes[i]
 
 			if type(PotentialType) ~= "string" then
-				Debug.Error("PotentialTypes in the array section must be strings in the form {\"number\", \"string\", \"nil\"}")
+				Resources:LoadLibrary("Debug").Error("PotentialTypes in the array section must be strings in the form {\"number\", \"string\", \"nil\"}")
 			end
 
 			Expectation = Expectation .. PotentialType .. " or "
@@ -115,7 +213,7 @@ local function TransformTableCheckerData(PotentialTypes)
 	return PotentialTypes
 end
 
-local function Check(PotentialTypes, Parameter, ArgumentNumber)
+local function Check(PotentialTypes, Parameter, ArgumentNumOrName)
 	local TypeOf = typeof(Parameter)
 
 	for i = 1, #PotentialTypes do
@@ -125,44 +223,101 @@ local function Check(PotentialTypes, Parameter, ArgumentNumber)
 	end
 
 	for Key, CheckFunction in next, PotentialTypes do
-		if type(Key) == "string" and CheckFunction(Parameter, TypeOf) then
-			return Parameter or true
+		if type(Key) == "string" then
+			local Success = CheckFunction(Parameter, TypeOf)
+
+			if Success then
+				return Key:find("^Enum") and Success or Parameter or true
+			end
 		end
 	end
 
-	local ArgumentNumberType = type(ArgumentNumber)
+	local ArgumentNumberType = type(ArgumentNumOrName)
 
 	return false, "bad argument"
-		.. (ArgumentNumber and (ArgumentNumberType == "number" and " #" .. ArgumentNumber or ArgumentNumberType == "string" and " to " .. ArgumentNumber) or "")
-		.. PotentialTypes[0] .. ", got " .. Debug.Inspect(Parameter)
+		.. (ArgumentNumOrName and (ArgumentNumberType == "number" and " #" .. ArgumentNumOrName or ArgumentNumberType == "string" and " to " .. ArgumentNumOrName) or "")
+		.. PotentialTypes[0] .. ", got " .. Resources:LoadLibrary("Debug").Inspect(Parameter)
 end
+
+local Typer = {}
 
 local CallToCheck = {__call = Check}
 
-local Typer = setmetatable({}, {
-	__index = function(self, i)
+setmetatable(Typer, {
+	__index = function(self, index)
 		local t = {}
-		self[i] = t
+		self[index] = t
 
-		if i:find("^Optional", 1, false) then
-			i = i:sub(9)
-			t[1] = "nil"
-		end
-
-		if i:find("^InstanceOfClass") then
-			local ClassName = i:sub(16)
-
-			t[ClassName] = function(Value, Type)
-				return Type == "Instance" and Value.ClassName == ClassName
+		for i in (index .. "Or"):gmatch("(%w-)Or") do -- Not the prettiest, but hey, we got parsing baby!
+			if i:find("^Optional") then
+				i = i:sub(9)
+				t[1] = "nil"
 			end
-		elseif i:find("^InstanceWhichIsA") then
-			local ClassName = i:sub(17)
 
-			t[ClassName] = function(Value, Type)
-				return Type == "Instance" and Value:IsA(ClassName)
+			if i:find("^InstanceOfClass") then
+				local ClassName = i:sub(16)
+
+				t["Instance of class " .. ClassName] = function(Value, Type)
+					return Type == "Instance" and Value.ClassName == ClassName
+				end
+			elseif i:find("^InstanceWhichIsA") then
+				local ClassName = i:sub(17)
+
+				t["Instance which is a " .. ClassName] = function(Value, Type)
+					return Type == "Instance" and Value:IsA(ClassName)
+				end
+			elseif i:find("^EnumOfType") then
+				i = i:sub(11)
+				local Castables = Enum[i]:GetEnumItems()
+
+				for a = 1, #Castables do
+					local Enumerator = Castables[a]
+					Castables[Enumerator] = Enumerator
+					Castables[Enumerator.Name] = Enumerator
+					Castables[Enumerator.Value] = Enumerator
+					Castables[a] = nil
+				end
+
+				t["Enum of type " .. i] = function(Value)
+					return Castables[Value] or false
+				end
+			elseif i:find("^EnumerationOfType") then
+				i = i:sub(18)
+				local EnumerationType = Resources:LoadLibrary("Enumeration")[i]
+
+				t["Enumeration of type " .. i] = function(Value)
+					return EnumerationType:Cast(Value)
+				end
+			elseif i:find("^ArrayOf%a+s$") then
+				i = i:match("^ArrayOf(%a+)s$")
+				local ArrayType = Typer[i]
+				local Function = CustomTypes.Array
+				local Castable = i:find("^Enum") and true or false
+
+				t["Array of " .. ArrayType[0]:sub(12):gsub("%S+", "%1s", 1)] = function(Value, Type)
+					return Function(Value, Type, ArrayType, Castable)
+				end
+			elseif i:find("^DictionaryOf%a+s$") then
+				i = i:match("^DictionaryOf(%a+)s$")
+				local DictionaryType = Typer[i]
+				local Function = CustomTypes.Dictionary
+				local Castable = i:find("^Enum") and true or false
+
+				t["Dictionary of " .. DictionaryType[0]:sub(12):gsub("%S+", "%1s", 1)] = function(Value, Type)
+					return Function(Value, Type, DictionaryType, Castable)
+				end
+			elseif i:find("^TableOf%a+s$") then
+				i = i:match("^TableOf(%a+)s$")
+				local TableType = Typer[i]
+				local Function = CustomTypes.Table
+				local Castable = i:find("^Enum") and true or false
+
+				t["Table of " .. TableType[0]:sub(12):gsub("%S+", "%1s", 1)] = function(Value, Type)
+					return Function(Value, Type, TableType, Castable)
+				end
+			else
+				t[#t + 1] = BuiltInTypes[i] or i
 			end
-		else
-			t[#t + 1] = BuiltInTypes[i] or i
 		end
 
 		return setmetatable(TransformTableCheckerData(t), CallToCheck)
@@ -170,40 +325,82 @@ local Typer = setmetatable({}, {
 })
 
 function Typer.AssignSignature(...)
-	local StackSignature = {...}
+	local FirstValueToCheckOffset = 0
+	local StackSignature
+
+	if CustomTypes.PositiveInteger(..., type((...))) then
+		FirstValueToCheckOffset = ... - 1
+		StackSignature = {select(2, ...)}
+	else
+		StackSignature = {...}
+	end
+
 	local Function = table.remove(StackSignature)
 
 	local NumTypes = #StackSignature
+	local Castable
 
 	for a = 1, NumTypes do
 		local ParameterSignature = StackSignature[a]
-		local Success, Error = Check(Typer.Table, ParameterSignature, a)
 
-		if Success then
-			TransformTableCheckerData(ParameterSignature)
+		if type(ParameterSignature) == "table" then
+			for i in next, TransformTableCheckerData(ParameterSignature) do
+				if type(i) == "string" and i:find("^Enum") then
+					if not Castable then
+						Castable = {}
+
+						for b = 1, a - 1 do
+							Castable[b] = false
+						end
+					end
+
+					Castable[a] = true
+				end
+			end
+
+			if Castable and not Castable[a] then
+				Castable[a] = false
+			end
 		else
-			Debug.Error(Error)
+			Resources:LoadLibrary("Debug").Error("Definition for parameter #" .. a .. " must be a table")
 		end
 	end
 
-	return function(...)
-		local NumParameters = select("#", ...)
+	if Castable then
+		return function(...)
+			local NumParameters = select("#", ...) -- This preserves nil's on the stack
+			local Stack = {...}
 
-		for a = 1, NumParameters < NumTypes and NumTypes or NumParameters do
-			local Success, Error = Check(StackSignature[a] or Typer.Nil, select(a, ...), a)
+			for a = 1, NumParameters < NumTypes and NumTypes or NumParameters do
+				local Success, Error = Check(StackSignature[a] or Typer.Nil, Stack[a + FirstValueToCheckOffset], a + FirstValueToCheckOffset)
 
-			if not Success then
-				return Debug.Error(Error)
+				if Success then
+					if Castable[a] and Success ~= true then
+						Stack[a + FirstValueToCheckOffset] = Success
+					end
+				elseif not Success then
+					return Resources:LoadLibrary("Debug").Error(Error)
+				end
 			end
-		end
 
-		return Function(...)
+			return Function(unpack(Stack, 1, NumParameters))
+		end
+	else -- Don't penalize cases which don't need to cast an Enum
+		return function(...)
+			local NumParameters = select("#", ...)
+
+			for a = 1, NumParameters < NumTypes and NumTypes or NumParameters do
+				local Success, Error = Check(StackSignature[a] or Typer.Nil, select(a + FirstValueToCheckOffset, ...), a + FirstValueToCheckOffset)
+
+				if not Success then
+					return Resources:LoadLibrary("Debug").Error(Error)
+				end
+			end
+
+			return Function(...)
+		end
 	end
 end
-
-Typer.Check = Typer.AssignSignature(Typer.Table, Typer.Any, {"nil", "string", "number"}, function(PotentialTypes, Parameter, ArgumentNumber)
-	return Check(TransformTableCheckerData(PotentialTypes), Parameter, ArgumentNumber)
-end)
 
 local Map__call = {
 	__call = function(self, Tab, TabType)
@@ -213,7 +410,7 @@ local Map__call = {
 
 		for Index in next, Tab do
 			if not self[Index] then
-				return false, "|Map.__call| " .. Debug.Inspect(Index) .. " is not a valid Key"
+				return false, "|Map.__call| " .. Resources:LoadLibrary("Debug").Inspect(Index) .. " is not a valid Key"
 			end
 		end
 
@@ -229,12 +426,15 @@ local Map__call = {
 	end;
 }
 
+local ExternalTransformTable = Typer.AssignSignature(Typer.Table, TransformTableCheckerData)
+
+Typer.Check = function(PotentialTypes, Parameter, ArgumentNumOrName)
+	return Check(ExternalTransformTable(PotentialTypes), Parameter, ArgumentNumOrName)
+end
+
 Typer.MapDefinition = Typer.AssignSignature(Typer.Table, function(Template)
 	for _, Type in next, Template do
-		if type(Type) ~= "table" then
-			return Debug.Error("Values must be tables")
-		end
-		TransformTableCheckerData(Type)
+		ExternalTransformTable(Type)
 	end
 
 	return setmetatable(Template, Map__call)

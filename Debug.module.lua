@@ -1,12 +1,14 @@
--- Standard RoStrap Debugging Functions
+-- Debugging Utilities
 -- @author Validark
 
 local Resources = require(game:GetService("ReplicatedStorage"):WaitForChild("Resources"))
 local Table = Resources:LoadLibrary("Table")
+local Typer = Resources:LoadLibrary("Typer")
 
 local Debug = {}
+local TAB = "    "
 
-function Debug.DirectoryToString(Object)
+Debug.DirectoryToString = Typer.AssignSignature(Typer.Instance, function(Object)
 	--- Gets the string of the directory of an object, properly formatted
 	-- string DirectoryToString(Object)
 	-- @returns Objects location in proper Lua format
@@ -19,7 +21,7 @@ function Debug.DirectoryToString(Object)
 			:gsub("%.(%d+[%w%s]+)", "%[\"%1\"%]")
 			:gsub("%.(%d+)", "%[%1%]")
 		)
-end
+end)
 
 local GetErrorData do
 	-- Standard RoStrap Erroring system
@@ -43,6 +45,10 @@ local GetErrorData do
 	local CommandBar = {Name = "Command bar"}
 
 	function GetErrorData(Err, ...) -- Make sure if you don't intend to format arguments in, you do %%f instead of %f
+		if type(Err) ~= "string" then
+			error(GetErrorData("!The first parameter of error formatting must be a string", "Debug"))
+		end
+
 		local t = {...}
 
 		local Traceback = debug.traceback()
@@ -109,7 +115,7 @@ do
 		end
 	end
 
-	function Debug.AlphabeticalOrder(Dictionary)
+	Debug.AlphabeticalOrder = Typer.AssignSignature(Typer.Table, function(Dictionary)
 		--- Iteration function that iterates over a dictionary in alphabetical order
 		-- function AlphabeticalOrder(Dictionary)
 		-- @param table Dictionary That which will be iterated over in alphabetical order
@@ -131,7 +137,7 @@ do
 			local Key = Order[Previous == nil and 1 or ((Order:Find(Previous) or error("invalid key to 'AlphabeticalOrder' " .. tostring(Previous))) + 1)]
 			return Key, Table[Key]
 		end, Dictionary, nil
-	end
+	end)
 end
 
 function Debug.UnionIteratorFunctions(...)
@@ -211,131 +217,107 @@ do
 	local function Parse(Object, Multiline, Depth, EncounteredTables)
 		local Type = typeof(Object)
 
-		if Type == "table" then
-			for TableName, Table in next, EncounteredTables do
-				if Table == Object then
-					if TableName == 1 then
-						return "[self]"
-					else
-						return "[table " .. TableName .. "]"
-					end
-				end
-			end
-			return ConvertTableIntoString(Object, nil, Multiline, (Depth or 1) + 1, EncounteredTables)
-		end
-
 		return
-			Type == "string" and "\"" .. Object .. "\"" or
-			Type == "Instance" and "<" .. Debug.DirectoryToString(Object) .. ">" or
-			(Type == "function" or Type == "userdata") and Type or
-			tostring(Object)
+			Type == "table" and (EncounteredTables[Object] and "[table " .. EncounteredTables[Object] .. "]" or ConvertTableIntoString(Object, nil, Multiline, (Depth or 1) + 1, EncounteredTables))
+			or Type == "string" and "\"" .. Object .. "\""
+			or Type == "Instance" and "<" .. Debug.DirectoryToString(Object) .. ">"
+			or (Type == "function" or Type == "userdata") and Type
+			or tostring(Object)
 	end
 
 	function ConvertTableIntoString(Table, TableName, Multiline, Depth, EncounteredTables)
-		if type(Table) == "table" then
-			EncounteredTables[#EncounteredTables + 1] = Table
+		local n = EncounteredTables.n + 1
+		EncounteredTables[Table] = n
+		EncounteredTables.n = n
 
-			local Output = {}
-			local OutputCount = 0
+		local Output = {}
+		local OutputCount = 0
 
-			for Key, Value, Iter in ArrayOrderThenAlphabetically(Table) do
-				if Iter < 3 then
-					if OutputCount == 0 and Multiline then
-						Output[OutputCount + 1] = "\n"
-						Output[OutputCount + 2] = ("\t"):rep(Depth)
-						OutputCount = OutputCount + 2
-					end
-
-					Output[OutputCount + 1] = (Iter == 1 and "[0] = " or "") .. Parse(Value, Multiline, Depth, EncounteredTables)
-					Output[OutputCount + 2] = ", "
-					OutputCount = OutputCount + 2
-				else
-					if Multiline then
-						OutputCount = OutputCount + 1
-						Output[OutputCount] = "\n"
-						Output[OutputCount + 1] = ("\t"):rep(Depth)
-					else
-						OutputCount = OutputCount - 1
-					end
-
-					if type(Key) == "string" and not Key:find("^%d") and not Key:find("%s") then
-						Output[OutputCount + 2] = Key
-						OutputCount = OutputCount - 2
-					else
-						Output[OutputCount + 2] = "["
-						Output[OutputCount + 3] = Parse(Key, Multiline, Depth, EncounteredTables)
-						Output[OutputCount + 4] = "]"
-					end
-
-					Output[OutputCount + 5] = " = "
-					Output[OutputCount + 6] = Parse(Value, Multiline, Depth, EncounteredTables)
-					Output[OutputCount + 7] = Multiline and ";" or ", "
-					OutputCount = OutputCount + 7
-				end
-			end
-
-			local OutputStart = 1
-
-			if Output[OutputCount] == ", " then
-				if Multiline then
-					OutputStart = OutputStart + 2
-				end
-				OutputCount = OutputCount - 1
-			elseif Multiline then
-				Output[OutputCount + 1] = "\n"
-				Output[OutputCount + 2] = ("\t"):rep(Depth)
+		for Key, Value, Iter in ArrayOrderThenAlphabetically(Table) do
+			if not Multiline and Iter < 3 then
+				Output[OutputCount + 1] = (Iter == 1 and "[0] = " or "") .. Parse(Value, Multiline, Depth, EncounteredTables)
+				Output[OutputCount + 2] = ", "
 				OutputCount = OutputCount + 2
-			end
-
-			local Metatable = getmetatable(Table)
-
-			OutputStart = OutputStart - 1
-
-			if not Multiline or Output[OutputCount - 1] ~= "\n" then
-				OutputCount = OutputCount + 1
-			end
-
-			Output[OutputStart] = "{"
-			Output[OutputCount] = "}"
-
-			if Metatable then
-				if type(Metatable) == "table" then
-					Output[OutputCount + 1] = " <- "
-					Output[OutputCount + 2] = ConvertTableIntoString(Metatable, nil, Multiline, nil, EncounteredTables)
-					OutputCount = OutputCount + 2
+			else
+				if Multiline then
+					OutputCount = OutputCount + 1
+					Output[OutputCount] = "\n"
+					Output[OutputCount + 1] = (TAB):rep(Depth)
 				else
-					warn((GetErrorData((TableName or "Table") .. "'s metatable cannot be accessed. Got:\n" .. tostring(Metatable))))
+					OutputCount = OutputCount - 1
 				end
-			end
 
-			if TableName then
-				Output[OutputStart - 1] = " = "
-				Output[OutputStart - 2] = TableName
-				OutputStart = OutputStart - 2
-			end
+				if type(Key) == "string" and not Key:find("^%d") and not Key:find("%s") then
+					Output[OutputCount + 2] = Key
+					OutputCount = OutputCount - 2
+				else
+					Output[OutputCount + 2] = "["
+					Output[OutputCount + 3] = Parse(Key, Multiline, Depth, EncounteredTables)
+					Output[OutputCount + 4] = "]"
+				end
 
-			return table.concat(Output, "", OutputStart, OutputCount)
-		else
-			error(GetErrorData("[Debug] TableToString needs a table to convert to a string! Got type " .. typeof(Table)))
+				Output[OutputCount + 5] = " = "
+				Output[OutputCount + 6] = Parse(Value, Multiline, Depth, EncounteredTables)
+				Output[OutputCount + 7] = Multiline and ";" or ", "
+				OutputCount = OutputCount + 7
+			end
 		end
+
+		local OutputStart = 1
+
+		if Output[OutputCount] == ", " then
+			if Multiline then
+				OutputStart = OutputStart + 2
+			end
+			OutputCount = OutputCount - 1
+		elseif Multiline then
+			Output[OutputCount + 1] = "\n"
+			Output[OutputCount + 2] = (TAB):rep(Depth)
+			OutputCount = OutputCount + 2
+		end
+
+		local Metatable = getmetatable(Table)
+
+		OutputStart = OutputStart - 1
+
+		if not Multiline or Output[OutputCount - 1] ~= "\n" then
+			OutputCount = OutputCount + 1
+		end
+
+		Output[OutputStart] = "{"
+		Output[OutputCount] = "}"
+
+		if Metatable then
+			Output[OutputCount + 1] = " <- "
+			Output[OutputCount + 2] = type(Metatable) == "table" and ConvertTableIntoString(Metatable, nil, Multiline, 1, EncounteredTables) or Debug.Inspect(Metatable)
+			OutputCount = OutputCount + 2
+		end
+
+		if TableName then
+			Output[OutputStart - 1] = " = "
+			Output[OutputStart - 2] = TableName
+			OutputStart = OutputStart - 2
+		end
+
+		return table.concat(Output, "", OutputStart, OutputCount)
 	end
 
-	function Debug.TableToString(Table, TableName, Multiline)
+	Debug.TableToString = Typer.AssignSignature(Typer.Table, Typer.OptionalBoolean, Typer.OptionalString, function(Table, Multiline, TableName)
 		--- Converts a table into a readable string
 		-- string TableToString(Table, TableName, Multiline)
 		-- @param table Table The Table to convert into a readable string
 		-- @param string TableName Optional Name parameter that puts a "[TableName] = " at the beginning
 		-- @returns a readable string version of the table
 
-		return ConvertTableIntoString(Table, TableName, Multiline, 1, {})
-	end
+		return ConvertTableIntoString(Table, TableName, Multiline, 1, {n = 0})
+	end)
 end
 
 do
 	local EscapedCharacters = {"%", "^", "$", "(", ")", ".", "[", "]", "*", "+", "-", "?"}
 	local Escapable = "([%" .. table.concat(EscapedCharacters, "%") .. "])"
 
-	function Debug.EscapeString(String)
+	Debug.EscapeString = Typer.AssignSignature(Typer.String, function(String)
 		--- Turns strings into Lua-readble format
 		-- string Debug.EscapeString(String)
 		-- @returns Objects location in proper Lua format
@@ -348,7 +330,7 @@ do
 				:gsub(Escapable, "%%%1")
 				:gsub("([\"\'\\])", "\\%1")
 		)
-	end
+	end)
 end
 
 function Debug.Inspect(Data)
@@ -368,5 +350,6 @@ function Debug.Inspect(Data)
 
 	return ((DataType .. " " .. DataString):gsub("^" .. DataType .. " " .. DataType, DataType, 1))
 end
+
 
 return Table.Lock(Debug)
