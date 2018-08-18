@@ -410,9 +410,19 @@ function Typer.AssignSignature(...)
 	end
 end
 
-local Map__call = {
-	__call = function(self, Tab, TabType)
-		if (TabType or type(Tab)) ~= "table" then
+local ExternalTransformTable = Typer.AssignSignature(Typer.Table, TransformTableCheckerData)
+
+Typer.Check = function(PotentialTypes, Parameter, ArgumentNumOrName)
+	return Check(ExternalTransformTable(PotentialTypes), Parameter, ArgumentNumOrName)
+end
+
+Typer.MapDefinition = Typer.AssignSignature(Typer.Table, function(self)
+	for _, Type in next, self do
+		ExternalTransformTable(Type)
+	end
+
+	return function(Tab)
+		if type(Tab) ~= "table" then
 			return false, "|Map.__call| Must be called with a Table"
 		end
 
@@ -432,20 +442,6 @@ local Map__call = {
 
 		return Tab
 	end;
-}
-
-local ExternalTransformTable = Typer.AssignSignature(Typer.Table, TransformTableCheckerData)
-
-Typer.Check = function(PotentialTypes, Parameter, ArgumentNumOrName)
-	return Check(ExternalTransformTable(PotentialTypes), Parameter, ArgumentNumOrName)
-end
-
-Typer.MapDefinition = Typer.AssignSignature(Typer.Table, function(Template)
-	for _, Type in next, Template do
-		ExternalTransformTable(Type)
-	end
-
-	return setmetatable(Template, Map__call)
 end)
 
 return Table.Lock(Typer)
