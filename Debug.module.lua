@@ -333,23 +333,35 @@ do
 	end)
 end
 
-function Debug.Inspect(Data)
+function Debug.Inspect(...)
 	--- Returns a string representation of anything
 	-- @param any Object The object you wish to represent as a string
 	-- @returns a readable string representation of the object
-
-	local DataType = typeof(Data)
-	local DataString
-
-	if DataType == "Instance" then
-		DataType = Data.ClassName
-		DataString = Debug.DirectoryToString(Data)
-	else
-		DataString = type(Data) == "table" and Debug.TableToString(Data) or tostring(Data)
+	
+	local List = ""
+	
+	for i = 1, select("#", ...) do
+		local Data = select(i, ...)
+		local DataType = typeof(Data)
+		local DataString
+	
+		if DataType == "Instance" then
+			DataType = Data.ClassName
+			DataString = Debug.DirectoryToString(Data)
+		else
+			DataString = DataType == "table" and Debug.TableToString(Data)
+				or DataType == "string" and "\"" .. Data .. "\""
+				or tostring(Data)
+		end
+	
+		List = List .. ", " .. ((DataType .. " " .. DataString):gsub("^" .. DataType .. " " .. DataType, DataType, 1))
 	end
-
-	return ((DataType .. " " .. DataString):gsub("^" .. DataType .. " " .. DataType, DataType, 1))
+	
+	if List == "" then
+		return "NONE"
+	else
+		return List:sub(3)
+	end
 end
-
 
 return Table.Lock(Debug)
