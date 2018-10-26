@@ -6,7 +6,25 @@ local Table = Resources:LoadLibrary("Table")
 local Typer = Resources:LoadLibrary("Typer")
 
 local Debug = {}
-local TAB = "    "
+local TAB = (" "):rep(4)
+
+local Services = {
+	Chat = "game:GetService(\"Chat\")";
+	Teams = "game:GetService(\"Teams\")";
+	Players = "game:GetService(\"Players\")";
+	Lighting = "game:GetService(\"Lighting\")";
+	Workspace = "game:GetService(\"Workspace\")";
+	StarterGui = "game:GetService(\"StarterGui\")";
+	TestService = "game:GetService(\"TestService\")";
+	StarterPack = "game:GetService(\"StarterPack\")";
+	SoundService = "game:GetService(\"SoundService\")";
+	StarterPlayer = "game:GetService(\"StarterPlayer\")";
+	ServerStorage = "game:GetService(\"ServerStorage\")";
+	ReplicatedFirst = "game:GetService(\"ReplicatedFirst\")";
+	ReplicatedStorage = "game:GetService(\"ReplicatedStorage\")";
+	LocalizationService = "game:GetService(\"LocalizationService\")";
+	ServerScriptService = "game:GetService(\"ServerScriptService\")";
+}
 
 Debug.DirectoryToString = Typer.AssignSignature(Typer.Instance, function(Object)
 	--- Gets the string of the directory of an object, properly formatted
@@ -15,12 +33,11 @@ Debug.DirectoryToString = Typer.AssignSignature(Typer.Instance, function(Object)
 	-- @author Validark
 	-- Corrects the built-in GetFullName function so that it returns properly formatted text.
 	return (
-		Object
-			:GetFullName()
-			:gsub("%.(%w*%s%w*)", "%[\"%1\"%]")
-			:gsub("%.(%d+[%w%s]+)", "%[\"%1\"%]")
-			:gsub("%.(%d+)", "%[%1%]")
-		)
+		Object:GetFullName()
+			:gsub("^[^%.]+", Services)
+			:gsub("%.([^%.%s]*%s[^%.]*)", "%[\"%1\"%]")
+			:gsub("%.(%d[^%.]*)", "%[\"%1\"%]")
+	)
 end)
 
 local GetErrorData do
