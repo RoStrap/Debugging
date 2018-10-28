@@ -1,4 +1,5 @@
 -- Powerful, light-weight type checker
+-- @documentation https://rostrap.github.io/Libraries/Debugging/Typer/
 -- @author Validark
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -276,14 +277,14 @@ setmetatable(Typer, {
 				end
 			elseif i:find("^EnumOfType") then
 				i = i:sub(11)
-				local Castables = Enum[i]:GetEnumItems()
+				local Castables = {}
+				local Enumerators = Enum[i]:GetEnumItems()
 
-				for a = 1, #Castables do
-					local Enumerator = Castables[a]
+				for a = 1, #Enumerators do
+					local Enumerator = Enumerators[a]
 					Castables[Enumerator] = Enumerator
 					Castables[Enumerator.Name] = Enumerator
 					Castables[Enumerator.Value] = Enumerator
-					Castables[a] = nil
 				end
 
 				t["Enum of type " .. i] = function(Value)
