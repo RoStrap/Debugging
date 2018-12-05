@@ -8,36 +8,44 @@ local Typer = Resources:LoadLibrary("Typer")
 local Debug = {}
 local TAB = (" "):rep(4)
 
-local Services = {
-	Chat = "game:GetService(\"Chat\")";
-	Teams = "game:GetService(\"Teams\")";
-	Players = "game:GetService(\"Players\")";
-	Lighting = "game:GetService(\"Lighting\")";
-	Workspace = "game:GetService(\"Workspace\")";
-	StarterGui = "game:GetService(\"StarterGui\")";
-	TestService = "game:GetService(\"TestService\")";
-	StarterPack = "game:GetService(\"StarterPack\")";
-	SoundService = "game:GetService(\"SoundService\")";
-	StarterPlayer = "game:GetService(\"StarterPlayer\")";
-	ServerStorage = "game:GetService(\"ServerStorage\")";
-	ReplicatedFirst = "game:GetService(\"ReplicatedFirst\")";
-	ReplicatedStorage = "game:GetService(\"ReplicatedStorage\")";
-	LocalizationService = "game:GetService(\"LocalizationService\")";
-	ServerScriptService = "game:GetService(\"ServerScriptService\")";
-}
+local Services = setmetatable({}, { -- Memoize GetService calls
+	__index = function(self, i)
+		local Success, Object = pcall(game.GetService, game, i)
+		local Service = Success and Object
+		self[i] = Service
+		return Service
+	end;
+})
 
 Debug.DirectoryToString = Typer.AssignSignature(Typer.Instance, function(Object)
 	--- Gets the string of the directory of an object, properly formatted
 	-- string DirectoryToString(Object)
 	-- @returns Objects location in proper Lua format
 	-- @author Validark
-	-- Corrects the built-in GetFullName function so that it returns properly formatted text.
-	return (
-		Object:GetFullName()
-			:gsub("^[^%.]+", Services)
-			:gsub("%.([^%.%s]*%s[^%.]*)", "%[\"%1\"%]")
-			:gsub("%.(%d[^%.]*)", "%[\"%1\"%]")
-	)
+	-- My implementation of the built-in GetFullName function which returns properly formatted text.
+
+	local FullName = {}
+	local Count = 0
+
+	while Object.Parent ~= game and Object.Parent ~= nil do
+		local ObjectName = Object.Name:gsub("([\\\"])", "\\%1")
+
+		if ObjectName:find("^[_%a][_%w]+$") then
+			FullName[Count] = "." .. ObjectName
+		else
+			FullName[Count] = "[\"" .. ObjectName .. "\"]"
+		end
+		Count = Count - 1
+		Object = Object.Parent
+	end
+
+	if Services[Object.ClassName] == Object then
+		FullName[Count] = "game:GetService(\"" .. Object.ClassName .. "\")"
+	else
+		FullName[Count] = "." .. "[\"" .. Object.Name .. "\"]" -- A dot at the beginning indicates a rootless Object
+	end
+
+	return table.concat(FullName, "", Count, 0)
 end)
 
 local GetErrorData do
