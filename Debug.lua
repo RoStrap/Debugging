@@ -22,32 +22,27 @@ Debug.DirectoryToString = Typer.AssignSignature(Typer.Instance, function(Object)
 	-- string DirectoryToString(Object)
 	-- @returns Objects location in proper Lua format
 	-- @author Validark
-	-- A proper re-implementation of the built-in GetFullName function for properly formatted text.
+	-- My implementation of the built-in GetFullName function which returns properly formatted text.
 
 	local FullName = {}
 	local Count = 0
 
-	while true do
+	while Object.Parent ~= game and Object.Parent ~= nil do
 		local ObjectName = Object.Name:gsub("([\\\"])", "\\%1")
-		local Parent = Object.Parent
-		local Last = Parent == game or Parent == nil
 
-		if Last then
-			if Services[Object.ClassName] == Object then
-				FullName[Count] = "game:GetService(\"" .. Object.ClassName .. "\")"
-			else
-				FullName[Count] = "." .. "[\"" .. ObjectName .. "\"]" -- A dot at the beginning indicates a rootless Object
-			end
-			break
+		if ObjectName:find("^[_%a][_%w]+$") then
+			FullName[Count] = "." .. ObjectName
 		else
-			if ObjectName:find("^[_%a][_%w]+$") then
-				FullName[Count] = "." .. ObjectName
-			else
-				FullName[Count] = "[\"" .. ObjectName .. "\"]"
-			end
-			Count = Count - 1
-			Object = Parent
+			FullName[Count] = "[\"" .. ObjectName .. "\"]"
 		end
+		Count = Count - 1
+		Object = Object.Parent
+	end
+
+	if Services[Object.ClassName] == Object then
+		FullName[Count] = "game:GetService(\"" .. Object.ClassName .. "\")"
+	else
+		FullName[Count] = "." .. "[\"" .. Object.Name .. "\"]" -- A dot at the beginning indicates a rootless Object
 	end
 
 	return table.concat(FullName, "", Count, 0)
