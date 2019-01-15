@@ -1,4 +1,5 @@
 -- Debugging Utilities
+-- @documentation https://rostrap.github.io/Libraries/Debugging/Debug/
 -- @author Validark
 
 local Resources = require(game:GetService("ReplicatedStorage"):WaitForChild("Resources"))
@@ -156,11 +157,14 @@ do
 			Order[Count] = Key
 		end
 
-		Resources:LoadLibrary("SortedArray").new(Order, Alphabetically)
+		table.sort(Order, Alphabetically)
 
-		return function(Table, Previous)
-			local Key = Order[Previous == nil and 1 or ((Order:Find(Previous) or error("invalid key to 'AlphabeticalOrder' " .. tostring(Previous))) + 1)]
-			return Key, Table[Key]
+		local i = 0
+
+		return function(Table)
+			i = i + 1
+			local Key = Order[i]
+			return Key, Table[Key], i
 		end, Dictionary, nil
 	end)
 end
@@ -227,23 +231,14 @@ local EachOrder do
 end
 
 do
-	local function Get0(t)
-		return function(t2, val)
-			if val == nil and t2[0] ~= nil then
-				return 0, t2[0]
-			end
-		end, t, nil
-	end
-
 	local typeof = typeof or type
-	local ArrayOrderThenAlphabetically = Debug.UnionIteratorFunctions(Get0, ipairs, Debug.AlphabeticalOrder)
 	local ConvertTableIntoString
 
 	local function Parse(Object, Multiline, Depth, EncounteredTables)
 		local Type = typeof(Object)
 
 		return
-			Type == "table" and (EncounteredTables[Object] and "[table " .. EncounteredTables[Object] .. "]" or ConvertTableIntoString(Object, nil, Multiline, (Depth or 1) + 1, EncounteredTables))
+			Type == "table" and (EncounteredTables[Object] and "[table " .. EncounteredTables[Object] .. "]" or ConvertTableIntoString(Object, nil, Multiline, Depth + 1, EncounteredTables))
 			or Type == "string" and "\"" .. Object .. "\""
 			or Type == "Instance" and "<" .. Debug.DirectoryToString(Object) .. ">"
 			or (Type == "function" or Type == "userdata") and Type
@@ -255,76 +250,67 @@ do
 		EncounteredTables[Table] = n
 		EncounteredTables.n = n
 
-		local Output = {}
-		local OutputCount = 0
+		local t = {}
+		local CurrentArrayIndex = 1
 
-		for Key, Value, Iter in ArrayOrderThenAlphabetically(Table) do
-			if not Multiline and Iter < 3 then
-				Output[OutputCount + 1] = (Iter == 1 and "[0] = " or "") .. Parse(Value, Multiline, Depth, EncounteredTables)
-				Output[OutputCount + 2] = ", "
-				OutputCount = OutputCount + 2
+		if TableName then
+			t[1] = TableName
+			t[2] = " = {"
+		else
+			t[1] = "{"
+		end
+
+		if not next(Table) then
+			t[#t + 1] = "}"
+			return table.concat(t)
+		end
+
+		for Key, Value in Debug.AlphabeticalOrder(Table) do
+			if not Multiline and type(Key) == "number" then
+				if Key == CurrentArrayIndex then
+					CurrentArrayIndex = CurrentArrayIndex + 1
+				else
+					t[#t + 1] = "[" .. Key .. "] = "
+				end
+				t[#t + 1] = Parse(Value, Multiline, Depth, EncounteredTables)
+				t[#t + 1] = ", "
 			else
 				if Multiline then
-					OutputCount = OutputCount + 1
-					Output[OutputCount] = "\n"
-					Output[OutputCount + 1] = (TAB):rep(Depth)
-				else
-					OutputCount = OutputCount - 1
+					t[#t + 1] = "\n"
+					t[#t + 1] = (TAB):rep(Depth)
 				end
 
-				if type(Key) == "string" and not Key:find("^%d") and not Key:find("%s") then
-					Output[OutputCount + 2] = Key
-					OutputCount = OutputCount - 2
+				if type(Key) == "string" and Key:find("^[%a_][%w_]+$") then
+					t[#t + 1] = Key
 				else
-					Output[OutputCount + 2] = "["
-					Output[OutputCount + 3] = Parse(Key, Multiline, Depth, EncounteredTables)
-					Output[OutputCount + 4] = "]"
+					t[#t + 1] = "["
+					t[#t + 1] = Parse(Key, Multiline, Depth, EncounteredTables)
+					t[#t + 1] = "]"
 				end
 
-				Output[OutputCount + 5] = " = "
-				Output[OutputCount + 6] = Parse(Value, Multiline, Depth, EncounteredTables)
-				Output[OutputCount + 7] = Multiline and ";" or ", "
-				OutputCount = OutputCount + 7
+				t[#t + 1] = " = "
+				t[#t + 1] = Parse(Value, Multiline, Depth, EncounteredTables)
+				t[#t + 1] = Multiline and ";" or ", "
 			end
 		end
 
-		local OutputStart = 1
-
-		if Output[OutputCount] == ", " then
-			if Multiline then
-				OutputStart = OutputStart + 2
-			end
-			OutputCount = OutputCount - 1
-		elseif Multiline then
-			Output[OutputCount + 1] = "\n"
-			Output[OutputCount + 2] = (TAB):rep(Depth)
-			OutputCount = OutputCount + 2
+		if Multiline then
+			t[#t + 1] = "\n"
+			t[#t + 1] = (TAB):rep(Depth - 1)
+		else
+			t[#t] = nil
 		end
+
+		t[#t + 1] = "}"
 
 		local Metatable = getmetatable(Table)
 
-		OutputStart = OutputStart - 1
-
-		if not Multiline or Output[OutputCount - 1] ~= "\n" then
-			OutputCount = OutputCount + 1
-		end
-
-		Output[OutputStart] = "{"
-		Output[OutputCount] = "}"
-
 		if Metatable then
-			Output[OutputCount + 1] = " <- "
-			Output[OutputCount + 2] = type(Metatable) == "table" and ConvertTableIntoString(Metatable, nil, Multiline, 1, EncounteredTables) or Debug.Inspect(Metatable)
-			OutputCount = OutputCount + 2
+			t[#t + 1] = " <- "
+			t[#t + 1] = type(Metatable) == "table" and ConvertTableIntoString(Metatable, nil, Multiline, Depth, EncounteredTables) or Debug.Inspect(Metatable)
 		end
 
-		if TableName then
-			Output[OutputStart - 1] = " = "
-			Output[OutputStart - 2] = TableName
-			OutputStart = OutputStart - 2
-		end
-
-		return table.concat(Output, "", OutputStart, OutputCount)
+		return table.concat(t)
 	end
 
 	Debug.TableToString = Typer.AssignSignature(Typer.Table, Typer.OptionalBoolean, Typer.OptionalString, function(Table, Multiline, TableName)
