@@ -31,7 +31,7 @@ Debug.DirectoryToString = Typer.AssignSignature(Typer.Instance, function(Object)
 	while Object.Parent ~= game and Object.Parent ~= nil do
 		local ObjectName = Object.Name:gsub("([\\\"])", "\\%1")
 
-		if ObjectName:find("^[_%a][_%w]+$") then
+		if ObjectName:find("^[_%a][_%w]*$") then
 			FullName[Count] = "." .. ObjectName
 		else
 			FullName[Count] = "[\"" .. ObjectName .. "\"]"
@@ -280,7 +280,7 @@ do
 					t[#t + 1] = (TAB):rep(Depth)
 				end
 
-				if type(Key) == "string" and Key:find("^[%a_][%w_]+$") then
+				if type(Key) == "string" and Key:find("^[%a_][%w_]*$") then
 					t[#t + 1] = Key
 				else
 					t[#t + 1] = "["
