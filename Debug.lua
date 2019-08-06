@@ -83,7 +83,7 @@ local GetErrorData do
 		local Prefix
 		Err, Prefix = Err:gsub("^!", "", 1)
 		local ModuleName = Prefix == 1 and table.remove(t, 1) or (getfenv(ErrorDepth).script or CommandBar).Name
-		local FunctionName
+		local FunctionName = ""
 
 		for i = 1, select("#", ...) do
 			t[i] = Debug.Inspect(t[i])
